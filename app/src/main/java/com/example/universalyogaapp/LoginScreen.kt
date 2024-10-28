@@ -14,6 +14,7 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import androidx.compose.ui.platform.LocalContext
 import android.widget.Toast
+import androidx.compose.material3.MaterialTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -22,6 +23,7 @@ fun LoginScreen(navController: NavController) {
     var password by remember { mutableStateOf("") }
     val context = LocalContext.current
     val dbHelper = remember { DatabaseHelper(context) }
+    val sessionManager = remember { SessionManager(context) }
 
     Column(
         modifier = Modifier
@@ -62,9 +64,20 @@ fun LoginScreen(navController: NavController) {
                 if (validateLogin(email, password)) {
                     val user = dbHelper.getUserByEmail(email)
                     if (user != null && user.second == password) {
-                        Toast.makeText(context, "Login successful", Toast.LENGTH_SHORT).show()
-                        navController.navigate(Routes.Home.route) {
-                            popUpTo(Routes.Login.route) { inclusive = true }
+                        try {
+                            // Use the exact name from the database
+                            val name = user.first  // This will preserve the original case
+                            
+                            sessionManager.saveAuthToken(email)
+                            sessionManager.saveUserInfo(1, email)
+                            sessionManager.saveUserName(name)  // Save the original name
+                            
+                            Toast.makeText(context, "Login successful", Toast.LENGTH_SHORT).show()
+                            navController.navigate(Routes.Home.route) {
+                                popUpTo(Routes.Login.route) { inclusive = true }
+                            }
+                        } catch (e: Exception) {
+                            Toast.makeText(context, "Error during login: ${e.message}", Toast.LENGTH_SHORT).show()
                         }
                     } else {
                         Toast.makeText(context, "Invalid email or password", Toast.LENGTH_SHORT).show()
@@ -77,7 +90,7 @@ fun LoginScreen(navController: NavController) {
                 .fillMaxWidth()
                 .height(48.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFB47B84)
+                containerColor = MaterialTheme.colorScheme.primary
             ),
             shape = MaterialTheme.shapes.small
         ) {

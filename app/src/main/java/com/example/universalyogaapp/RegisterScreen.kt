@@ -16,6 +16,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import androidx.compose.material3.MaterialTheme
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -93,7 +95,7 @@ fun RegisterScreen(navController: NavController) {
                 .fillMaxWidth()
                 .height(48.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFB47B84)
+                containerColor = MaterialTheme.colorScheme.primary
             ),
             shape = MaterialTheme.shapes.small
         ) {

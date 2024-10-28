@@ -1,10 +1,8 @@
 package com.example.universalyogaapp
 
-import android.content.res.Resources.Theme
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -14,7 +12,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
@@ -24,28 +21,59 @@ import com.airbnb.lottie.compose.rememberLottieComposition
 import com.example.universalyogaapp.ui.theme.*
 import androidx.compose.runtime.getValue
 import com.airbnb.lottie.compose.*
+import com.example.universalyogaapp.screens.CoursesScreen
+import com.example.universalyogaapp.screens.ClassesScreen
+import com.example.universalyogaapp.screens.InstructorsScreen
+import com.example.universalyogaapp.screens.ParticipantsScreen
+import com.example.universalyogaapp.screens.ProfileScreen
+import androidx.compose.material3.MaterialTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val sessionManager = SessionManager(this)
         setContent {
             UniversalYogaAppTheme {
                 val navController = rememberNavController()
-                NavHost(navController = navController, startDestination = Routes.Login.route) {
-                    composable(Routes.Login.route) {
-                        LoginScreen(navController = navController)
-                    }
-                    composable(Routes.Register.route) {
-                        RegisterScreen(navController = navController)
-                    }
-                    composable(Routes.Intro.route) {
-                        IntroScreen(navController = navController)
-                    }
-                    composable(Routes.Home.route) {
-                        HomeScreen(navController = navController)
-                    }
-                    // ... (other composables)
+                val startDestination = if (sessionManager.fetchAuthToken() != null) {
+                    Routes.Home.route
+                } else {
+                    Routes.Intro.route
                 }
+                
+                NavHost(
+                    navController = navController,
+                    startDestination = startDestination,
+                    builder = {
+                        composable(Routes.Login.route) {
+                            LoginScreen(navController = navController)
+                        }
+                        composable(Routes.Register.route) {
+                            RegisterScreen(navController = navController)
+                        }
+                        composable(Routes.Intro.route) {
+                            IntroScreen(navController = navController)
+                        }
+                        composable(Routes.Home.route) {
+                            HomeScreen(navController = navController)
+                        }
+                        composable(Routes.Courses.route) {
+                            CoursesScreen(navController = navController)
+                        }
+                        composable(Routes.Classes.route) {
+                            ClassesScreen(navController = navController)
+                        }
+                        composable(Routes.Instructors.route) {
+                            InstructorsScreen(navController = navController)
+                        }
+                        composable(Routes.Participants.route) {
+                            ParticipantsScreen(navController = navController)
+                        }
+                        composable(Routes.Profile.route) {
+                            ProfileScreen(navController = navController)
+                        }
+                    }
+                )
             }
         }
     }
@@ -88,16 +116,25 @@ fun IntroScreen(navController: NavController) {
         Spacer(modifier = Modifier.height(32.dp))
         
         Button(
-            onClick = { navController.navigate(Routes.Login) },
+            onClick = { 
+                // Navigate to Login screen instead of Home
+                navController.navigate(Routes.Login.route) {
+                    popUpTo(Routes.Intro.route) { inclusive = true }
+                }
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(48.dp),
             colors = ButtonDefaults.buttonColors(
-               containerColor = Color(0xFFB47B84)
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = Color.White
             ),
             shape = MaterialTheme.shapes.small
         ) {
-            Text("Get started")
+            Text(
+                text = "Get started",
+                color = Color.White
+            )
         }
     }
 }

@@ -1,22 +1,18 @@
 package com.example.universalyogaapp
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.ThumbUp
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
@@ -25,19 +21,34 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.example.universalyogaapp.R
 import com.google.accompanist.pager.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.yield
 import androidx.compose.ui.util.lerp
 import kotlin.math.absoluteValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Card
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.sp
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import res.drawable.*
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.foundation.clickable
+import com.example.universalyogaapp.components.CommonScaffold
+import androidx.compose.material3.MaterialTheme
+
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPagerApi::class)
 @Composable
 fun HomeScreen(navController: NavController) {
-    Scaffold(
-        bottomBar = { BottomNavigation() }
-    ) { innerPadding ->
+    val context = LocalContext.current
+    val sessionManager = remember { SessionManager(context) }
+
+    CommonScaffold(navController = navController) { innerPadding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -45,18 +56,18 @@ fun HomeScreen(navController: NavController) {
                 .padding(16.dp)
         ) {
             item { Header() }
-            item { Spacer(modifier = Modifier.height(16.dp)) }
+            item { Spacer(modifier = Modifier.height(24.dp)) }
             item { ImageSlider() }
             item { Spacer(modifier = Modifier.height(16.dp)) }
-            item { Statistics() }
+            item { Statistics(navController) }
             item { Spacer(modifier = Modifier.height(16.dp)) }
-            item { SectionTitle("Courses") }
+            item { SectionTitle("Courses", navController) }
             item { CoursesList() }
             item { Spacer(modifier = Modifier.height(16.dp)) }
-            item { SectionTitle("Classes") }
+            item { SectionTitle("Classes", navController) }
             item { ClassesList() }
             item { Spacer(modifier = Modifier.height(16.dp)) }
-            item { SectionTitle("Registered Participants") }
+            item { SectionTitle("Registered Participants", navController) }
             item { ParticipantsList() }
         }
     }
@@ -125,7 +136,8 @@ fun ImageSlider() {
             pagerState = pagerState,
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
-                .padding(16.dp)
+                .padding(16.dp),
+            activeColor = MaterialTheme.colorScheme.primary
         )
     }
 }
@@ -147,68 +159,163 @@ fun Header() {
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold
         )
+        Spacer(modifier = Modifier.width(16.dp))
+
     }
 }
 
-@Composable
-fun Statistics() {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        StatItem(
-            title = "Classes",
-            value = "45",
-            icon = { 
-                Icon(
-                    imageVector = Icons.Default.DateRange,
-                    contentDescription = null,
-                    tint = Color(0xFFB47B84)
-                )
-            }
-        )
-        StatItem(
-            title = "Participants",
-            value = "120",
-            icon = { 
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = null,
-                    tint = Color(0xFFB47B84)
-                )
-            }
-        )
-    }
+sealed class StatType {
+    object Courses : StatType()
+    object Classes : StatType()
+    object Instructors : StatType()
+    object Participants : StatType()
 }
 
 @Composable
-fun StatItem(title: String, value: String, icon: @Composable () -> Unit) {
+fun StatItem(
+    title: String, 
+    value: String, 
+    modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
+    painter: Painter? = null,
+    statType: StatType,
+    navController: NavController  // Add navController parameter
+) {
     Card(
-        modifier = Modifier
-            .width(150.dp)
+        modifier = modifier
             .padding(4.dp)
+            .clickable {
+                when (statType) {
+                    StatType.Courses -> navController.navigate(Routes.Courses.route)
+                    StatType.Classes -> navController.navigate(Routes.Classes.route)
+                    StatType.Instructors -> navController.navigate(Routes.Instructors.route)
+                    StatType.Participants -> navController.navigate(Routes.Participants.route)
+                }
+            },
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 1.dp
+        )
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.Start
         ) {
-            icon()
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (painter != null) {
+                    Icon(
+                        painter = painter,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                } else if (icon != null) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.DarkGray
+                )
+            }
             Spacer(modifier = Modifier.height(8.dp))
-            Text(text = title, style = MaterialTheme.typography.bodyMedium)
-            Text(text = value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.Gray
+            )
         }
     }
 }
 
 @Composable
-fun SectionTitle(title: String) {
+fun Statistics(navController: NavController) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            StatItem(
+                title = "Courses",
+                value = "10",
+                painter = painterResource(id = R.drawable.ic_course),
+                modifier = Modifier.weight(1f),
+                statType = StatType.Courses,
+                navController = navController
+            )
+            StatItem(
+                title = "Classes",
+                value = "45",
+                icon = Icons.Default.DateRange,
+                modifier = Modifier.weight(1f),
+                statType = StatType.Classes,
+                navController = navController
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            StatItem(
+                title = "Instructors",
+                value = "12",
+                icon = Icons.Default.Person,
+                modifier = Modifier.weight(1f),
+                statType = StatType.Instructors,
+                navController = navController
+            )
+            StatItem(
+                title = "Participants",
+                value = "150",
+                painter = painterResource(id = R.drawable.ic_participants),
+                modifier = Modifier.weight(1f),
+                statType = StatType.Participants,
+                navController = navController
+            )
+        }
+    }
+}
+
+@Composable
+fun SectionTitle(
+    title: String,
+    navController: NavController  // Add navController parameter
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(text = title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-        Text(text = "see all >", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+        Text(
+            text = "See all",
+            style = MaterialTheme.typography.bodySmall.copy(
+                textDecoration = TextDecoration.Underline
+            ),
+            color = Color.Gray,
+            modifier = Modifier.clickable {
+                when (title) {
+                    "Courses" -> navController.navigate(Routes.Courses.route)
+                    "Classes" -> navController.navigate(Routes.Classes.route)
+                    "Registered Participants" -> navController.navigate(Routes.Participants.route)
+                }
+            }
+        )
     }
     Spacer(modifier = Modifier.height(8.dp))
 }
@@ -216,8 +323,8 @@ fun SectionTitle(title: String) {
 @Composable
 fun CoursesList() {
     val courses = listOf(
-        Course("Morning Yoga", "Duration: 60 mins, Level: Beginner", R.drawable.ic_launcher_foreground),
-        Course("Evening Relaxation", "Duration: 45 mins, Level: Intermediate", R.drawable.ic_launcher_foreground)
+        Course("Morning Yoga", "Duration: 60 mins, Level: Beginner", R.drawable.ic_course),
+        Course("Evening Relaxation", "Duration: 45 mins, Level: Intermediate", R.drawable.ic_course)
     )
     courses.forEach { course ->
         CourseItem(course)
@@ -228,18 +335,35 @@ fun CoursesList() {
 @Composable
 fun CourseItem(course: Course) {
     Card(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 1.dp
+        )
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                painter = painterResource(id = course.iconResId),
-                contentDescription = null,
-                tint = Color(0xFFB47B84),
-                modifier = Modifier.size(24.dp)
-            )
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = MaterialTheme.colorScheme.background,
+                modifier = Modifier.size(40.dp)
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = painterResource(id = course.iconResId),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
             Spacer(modifier = Modifier.width(16.dp))
             Column {
                 Text(text = course.name, style = MaterialTheme.typography.titleMedium)
@@ -264,18 +388,35 @@ fun ClassesList() {
 @Composable
 fun ClassItem(yogaClass: YogaClass) {
     Card(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 1.dp
+        )
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = Icons.Default.DateRange,
-                contentDescription = null,
-                tint = Color(0xFFB47B84),
-                modifier = Modifier.size(24.dp)
-            )
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = MaterialTheme.colorScheme.background,  // Light gray background
+                modifier = Modifier.size(40.dp)
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.DateRange,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
             Spacer(modifier = Modifier.width(16.dp))
             Column {
                 Text(text = yogaClass.name, style = MaterialTheme.typography.titleMedium)
@@ -288,8 +429,8 @@ fun ClassItem(yogaClass: YogaClass) {
 @Composable
 fun ParticipantsList() {
     val participants = listOf(
-        Participant("Olivia Brown", "Registered: 2023-09-25, Contact: ...", R.drawable.ic_launcher_foreground),
-        Participant("Noah Wilson", "Registered: 2023-09-26, Contact: ...", R.drawable.ic_launcher_foreground)
+        Participant("Olivia Brown", "Registered: 2023-09-25, Contact: ...", R.drawable.ic_participants),
+        Participant("Noah Wilson", "Registered: 2023-09-26, Contact: ...", R.drawable.ic_participants)
     )
     participants.forEach { participant ->
         ParticipantItem(participant)
@@ -300,20 +441,35 @@ fun ParticipantsList() {
 @Composable
 fun ParticipantItem(participant: Participant) {
     Card(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 1.dp
+        )
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Image(
-                painter = painterResource(id = participant.imageResId),
-                contentDescription = null,
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape),
-                contentScale = ContentScale.Crop
-            )
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = MaterialTheme.colorScheme.background,  // Light gray background
+                modifier = Modifier.size(40.dp)
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = painterResource(id = participant.imageResId),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
             Spacer(modifier = Modifier.width(16.dp))
             Column {
                 Text(text = participant.name, style = MaterialTheme.typography.titleMedium)
@@ -323,36 +479,14 @@ fun ParticipantItem(participant: Participant) {
     }
 }
 
-@Composable
-fun BottomNavigation() {
-    NavigationBar {
-        NavigationBarItem(
-            icon = { Icon(Icons.Filled.Home, contentDescription = null) },
-            label = { Text("Home") },
-            selected = true,
-            onClick = { }
-        )
-        NavigationBarItem(
-            icon = { Icon(Icons.Filled.ThumbUp, contentDescription = null) },
-            label = { Text("Courses") },
-            selected = false,
-            onClick = { }
-        )
-        NavigationBarItem(
-            icon = { Icon(Icons.Filled.DateRange, contentDescription = null) },
-            label = { Text("Classes") },
-            selected = false,
-            onClick = { }
-        )
-        NavigationBarItem(
-            icon = { Icon(Icons.Filled.Person, contentDescription = null) },
-            label = { Text("Participants") },
-            selected = false,
-            onClick = { }
-        )
-    }
-}
-
 data class Course(val name: String, val details: String, val iconResId: Int)
 data class YogaClass(val name: String, val details: String)
 data class Participant(val name: String, val details: String, val imageResId: Int)
+
+data class BottomNavItem(
+    val title: String,
+    val icon: ImageVector? = null,
+    val iconResId: Int? = null,
+    val route: String
+)
+
