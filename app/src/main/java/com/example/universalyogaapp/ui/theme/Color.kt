@@ -4,3 +4,4 @@ import androidx.compose.ui.graphics.Color
 
 val BrownColor = Color(0xFFB46D67)
 val BackgroundColor = Color(0xFFF5F5F5)
+val SecondaryColor = Color(0xFF4A6C6F)

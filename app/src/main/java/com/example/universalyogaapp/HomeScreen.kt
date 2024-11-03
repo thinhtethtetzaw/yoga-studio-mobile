@@ -48,71 +48,7 @@ fun HomeScreen(navController: NavController) {
     val context = LocalContext.current
     val sessionManager = remember { SessionManager(context) }
 
-    Scaffold(
-        bottomBar = {
-            NavigationBar(
-                containerColor = Color.White,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                val items = listOf(
-                    BottomNavItem("Home", Icons.Default.Home, route = Routes.Home.route),
-                    BottomNavItem(
-                        title = "Courses",
-                        iconResId = R.drawable.ic_course,
-                        route = Routes.Courses.route
-                    ),
-                    BottomNavItem(
-                        title = "Classes",
-                        icon = Icons.Default.DateRange,
-                        route = Routes.Classes.route
-                    ),
-                    BottomNavItem(
-                        title = "Profile",
-                        icon = Icons.Default.AccountCircle,
-                        route = Routes.Profile.route
-                    )
-                )
-
-                items.forEach { item ->
-                    NavigationBarItem(
-                        icon = {
-                            if (item.icon != null) {
-                                Icon(item.icon, contentDescription = item.title)
-                            } else if (item.iconResId != null) {
-                                Icon(
-                                    painter = painterResource(id = item.iconResId),
-                                    contentDescription = item.title
-                                )
-                            }
-                        },
-                        label = { Text(item.title) },
-                        selected = item.route == Routes.Home.route,
-                        onClick = { 
-                            // Update navigation logic
-                            navController.navigate(item.route) {
-                                // Pop up to the start destination of the graph to
-                                // avoid building up a large stack of destinations
-                                popUpTo(Routes.Home.route) {
-                                    saveState = true
-                                }
-                                // Avoid multiple copies of the same destination
-                                launchSingleTop = true
-                                // Restore state when reselecting a previously selected item
-                                restoreState = true
-                            }
-                        },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = MaterialTheme.colorScheme.primary,
-                            unselectedIconColor = Color.Gray,
-                            selectedTextColor = MaterialTheme.colorScheme.primary,
-                            unselectedTextColor = Color.Gray,
-                            indicatorColor = Color.White
-                        )
-                    )
-                }
-            }
-        }
-    ) { innerPadding ->
+    CommonScaffold(navController = navController) { innerPadding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -223,6 +159,8 @@ fun Header() {
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold
         )
+        Spacer(modifier = Modifier.width(16.dp))
+
     }
 }
 
