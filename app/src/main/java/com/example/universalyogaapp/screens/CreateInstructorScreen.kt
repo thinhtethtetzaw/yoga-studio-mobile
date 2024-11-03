@@ -66,7 +66,7 @@ fun CreateInstructorScreen(navController: NavController) {
             Button(
                 onClick = {
                     if (name.isNotBlank() && experience.isNotBlank()) {
-                        viewModel.addInstructor(name, "${experience} years")
+                        viewModel.addInstructor(name, experience)
                         navController.navigateUp()
                     }
                 },

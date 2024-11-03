@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class InstructorViewModel(application: Application) : AndroidViewModel(application) {
     private val dbHelper = DatabaseHelper(application)
@@ -19,10 +20,10 @@ class InstructorViewModel(application: Application) : AndroidViewModel(applicati
         loadInstructors()
     }
 
-    private fun loadInstructors() {
+    fun loadInstructors() {
         viewModelScope.launch(Dispatchers.IO) {
             val instructorsList = dbHelper.getAllInstructors()
-            _instructors.value = instructorsList
+            _instructors.emit(instructorsList)
         }
     }
 
@@ -30,8 +31,26 @@ class InstructorViewModel(application: Application) : AndroidViewModel(applicati
         viewModelScope.launch(Dispatchers.IO) {
             val id = dbHelper.insertInstructor(name, experience)
             if (id != -1L) {
-                loadInstructors() // Reload the list after successful insertion
+                loadInstructors()
             }
+        }
+    }
+
+    fun getInstructorById(id: Int): Instructor? {
+        return dbHelper.getInstructorById(id)
+    }
+
+    fun updateInstructor(instructor: Instructor) {
+        viewModelScope.launch(Dispatchers.IO) {
+            dbHelper.updateInstructor(instructor)
+            loadInstructors()
+        }
+    }
+
+    fun deleteInstructor(id: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            dbHelper.deleteInstructor(id)
+            loadInstructors()
         }
     }
 } 
