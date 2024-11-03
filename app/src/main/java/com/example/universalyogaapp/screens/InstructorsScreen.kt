@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -31,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.compose.ui.window.DialogProperties
 import com.example.universalyogaapp.Routes
 import com.example.universalyogaapp.components.CommonScaffold
 import com.example.universalyogaapp.models.Instructor
@@ -65,29 +67,63 @@ fun InstructorsScreen(navController: NavController) {
                 showDeleteDialog = false 
                 instructorToDelete = null
             },
-            title = { Text("Delete Instructor") },
-            text = { Text("Are you sure you want to delete this instructor?") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        instructorToDelete?.let { instructor ->
-                            viewModel.deleteInstructor(instructor.id)
+            title = { Text("Are you sure to delete this instructor?") },
+            confirmButton = {},
+            dismissButton = {},
+            containerColor = Color.White,
+            tonalElevation = 8.dp,
+            shape = RoundedCornerShape(8.dp),
+            properties = DialogProperties(usePlatformDefaultWidth = false),
+            modifier = Modifier.padding(horizontal = 16.dp),
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = { 
+                                showDeleteDialog = false
+                                instructorToDelete = null
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFFF5F5F5)
+                            ),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text(
+                                "Cancel",
+                                color = Color.Black
+                            )
                         }
-                        showDeleteDialog = false
-                        instructorToDelete = null
+                        
+                        Button(
+                            onClick = {
+                                instructorToDelete?.let { instructor ->
+                                    viewModel.deleteInstructor(instructor.id)
+                                }
+                                showDeleteDialog = false
+                                instructorToDelete = null
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFFE57373)
+                            ),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text(
+                                "Confirm",
+                                color = Color.White
+                            )
+                        }
                     }
-                ) {
-                    Text("Delete", color = Color(0xFFB00020))
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = { 
-                        showDeleteDialog = false
-                        instructorToDelete = null
-                    }
-                ) {
-                    Text("Cancel")
                 }
             }
         )
@@ -102,7 +138,9 @@ fun InstructorsScreen(navController: NavController) {
             },
             title = { Text("Edit Instructor") },
             text = {
-                Column {
+                Column(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     OutlinedTextField(
                         value = editName,
                         onValueChange = { editName = it },
@@ -111,7 +149,7 @@ fun InstructorsScreen(navController: NavController) {
                         isError = showEditError && editName.isBlank()
                     )
                     
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
                     
                     OutlinedTextField(
                         value = editExperience,
@@ -133,43 +171,75 @@ fun InstructorsScreen(navController: NavController) {
                             modifier = Modifier.padding(top = 8.dp)
                         )
                     }
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        if (editName.isBlank() || editExperience.isBlank()) {
-                            showEditError = true
-                            return@TextButton
-                        }
-                        
-                        instructorToEdit?.let { instructor ->
-                            viewModel.updateInstructor(
-                                instructor.copy(
-                                    name = editName,
-                                    experience = editExperience
-                                )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = { 
+                                showEditDialog = false
+                                instructorToEdit = null
+                                showEditError = false
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFFF5F5F5)
+                            ),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text(
+                                "Cancel",
+                                color = Color.Black
                             )
                         }
-                        showEditDialog = false
-                        instructorToEdit = null
-                        showEditError = false
+                        
+                        Button(
+                            onClick = {
+                                if (editName.isBlank() || editExperience.isBlank()) {
+                                    showEditError = true
+                                    return@Button
+                                }
+                                
+                                instructorToEdit?.let { instructor ->
+                                    viewModel.updateInstructor(
+                                        instructor.copy(
+                                            name = editName,
+                                            experience = editExperience
+                                        )
+                                    )
+                                }
+                                showEditDialog = false
+                                instructorToEdit = null
+                                showEditError = false
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.secondary
+                            ),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text(
+                                "Save",
+                                color = Color.White
+                            )
+                        }
                     }
-                ) {
-                    Text("Update")
                 }
             },
-            dismissButton = {
-                TextButton(
-                    onClick = { 
-                        showEditDialog = false
-                        instructorToEdit = null
-                        showEditError = false
-                    }
-                ) {
-                    Text("Cancel")
-                }
-            }
+            confirmButton = {},
+            dismissButton = {},
+            containerColor = Color.White,
+            tonalElevation = 8.dp,
+            shape = RoundedCornerShape(8.dp),
+            properties = DialogProperties(usePlatformDefaultWidth = false),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 0.dp)
         )
     }
 
@@ -236,7 +306,7 @@ fun InstructorsScreen(navController: NavController) {
                             Surface(
                                 modifier = Modifier.size(48.dp),
                                 shape = MaterialTheme.shapes.medium,
-                                color = Color.White
+                                color = MaterialTheme.colorScheme.background,
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Person,
@@ -255,7 +325,7 @@ fun InstructorsScreen(navController: NavController) {
                             ) {
                                 Text(
                                     text = instructor.name,
-                                    style = MaterialTheme.typography.titleLarge,
+                                    style = MaterialTheme.typography.titleMedium,
                                     color = Color.DarkGray
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
