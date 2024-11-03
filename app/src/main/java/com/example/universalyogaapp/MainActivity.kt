@@ -28,6 +28,7 @@ import com.example.universalyogaapp.screens.ParticipantsScreen
 import com.example.universalyogaapp.screens.ProfileScreen
 import androidx.compose.material3.MaterialTheme
 import com.example.universalyogaapp.screens.CreateCourseScreen
+import com.example.universalyogaapp.screens.CreateInstructorScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -66,6 +67,9 @@ class MainActivity : ComponentActivity() {
                         }
                         composable(Routes.Instructors.route) {
                             InstructorsScreen(navController = navController)
+                        }
+                        composable(Routes.CreateInstructor.route) {
+                            CreateInstructorScreen(navController = navController)
                         }
                         composable(Routes.Participants.route) {
                             ParticipantsScreen(navController = navController)

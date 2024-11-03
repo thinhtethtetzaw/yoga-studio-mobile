@@ -11,5 +11,6 @@ sealed class Routes(val route: String) {
     object Participants : Routes("participants")
     object Profile : Routes("profile")
     object CreateCourse : Routes("create_course")
+    object CreateInstructor : Routes("create_instructor")
     // ... (other routes)
 }

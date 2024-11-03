@@ -4,6 +4,7 @@ import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import com.example.universalyogaapp.models.Instructor
 
 class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
 
@@ -15,6 +16,10 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         private const val COLUMN_NAME = "name"
         private const val COLUMN_EMAIL = "email"
         private const val COLUMN_PASSWORD = "password"
+        private const val TABLE_INSTRUCTORS = "instructors"
+        private const val COLUMN_INSTRUCTOR_ID = "id"
+        private const val COLUMN_INSTRUCTOR_NAME = "name"
+        private const val COLUMN_INSTRUCTOR_EXPERIENCE = "experience"
     }
 
     override fun onCreate(db: SQLiteDatabase) {
@@ -27,10 +32,20 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
             )
         """.trimIndent()
         db.execSQL(createTable)
+
+        // Create instructors table
+        db.execSQL("""
+            CREATE TABLE $TABLE_INSTRUCTORS (
+                $COLUMN_INSTRUCTOR_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                $COLUMN_INSTRUCTOR_NAME TEXT NOT NULL,
+                $COLUMN_INSTRUCTOR_EXPERIENCE TEXT NOT NULL
+            )
+        """)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         db.execSQL("DROP TABLE IF EXISTS $TABLE_USERS")
+        db.execSQL("DROP TABLE IF EXISTS $TABLE_INSTRUCTORS")
         onCreate(db)
     }
 
@@ -84,5 +99,39 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         } else {
             null
         }
+    }
+
+    fun insertInstructor(name: String, experience: String): Long {
+        val db = this.writableDatabase
+        val values = ContentValues().apply {
+            put(COLUMN_INSTRUCTOR_NAME, name)
+            put(COLUMN_INSTRUCTOR_EXPERIENCE, experience)
+        }
+        return db.insert(TABLE_INSTRUCTORS, null, values)
+    }
+
+    fun getAllInstructors(): List<Instructor> {
+        val instructors = mutableListOf<Instructor>()
+        val db = this.readableDatabase
+        val cursor = db.query(
+            TABLE_INSTRUCTORS,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "$COLUMN_INSTRUCTOR_NAME ASC"
+        )
+
+        with(cursor) {
+            while (moveToNext()) {
+                val id = getInt(getColumnIndexOrThrow(COLUMN_INSTRUCTOR_ID))
+                val name = getString(getColumnIndexOrThrow(COLUMN_INSTRUCTOR_NAME))
+                val experience = getString(getColumnIndexOrThrow(COLUMN_INSTRUCTOR_EXPERIENCE))
+                instructors.add(Instructor(id, name, experience))
+            }
+        }
+        cursor.close()
+        return instructors
     }
 }

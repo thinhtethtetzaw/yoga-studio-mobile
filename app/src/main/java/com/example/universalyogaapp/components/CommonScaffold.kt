@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
@@ -28,16 +27,20 @@ fun CommonScaffold(
     floatingActionButton: @Composable (() -> Unit)? = null,
     content: @Composable (PaddingValues) -> Unit
 ) {
+    val isHomeScreen = navController.currentDestination?.route == Routes.Home.route
+
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text(text = "Universal Yoga") },
-                navigationIcon = {
-                    IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.Default.ArrowBackIosNew, "Back")
+            if (!isHomeScreen) {
+                CenterAlignedTopAppBar(
+                    title = { Text(text = "Universal Yoga") },
+                    navigationIcon = {
+                        IconButton(onClick = { navController.navigateUp() }) {
+                            Icon(Icons.Default.ArrowBackIosNew, "Back")
+                        }
                     }
-                }
-            )
+                )
+            }
         },
         bottomBar = { BottomNavigation(navController) },
         floatingActionButton = if (floatingActionButton != null) {
