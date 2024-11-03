@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.*
@@ -18,15 +20,31 @@ import androidx.navigation.NavController
 import com.example.universalyogaapp.BottomNavItem
 import com.example.universalyogaapp.R
 import com.example.universalyogaapp.Routes
-import androidx.compose.material3.MaterialTheme
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CommonScaffold(
     navController: NavController,
+    floatingActionButton: @Composable (() -> Unit)? = null,
     content: @Composable (PaddingValues) -> Unit
 ) {
     Scaffold(
-        bottomBar = { BottomNavigation(navController) }
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text(text = "Universal Yoga") },
+                navigationIcon = {
+                    IconButton(onClick = { navController.navigateUp() }) {
+                        Icon(Icons.Default.ArrowBackIosNew, "Back")
+                    }
+                }
+            )
+        },
+        bottomBar = { BottomNavigation(navController) },
+        floatingActionButton = if (floatingActionButton != null) {
+            floatingActionButton
+        } else {
+            {}
+        }
     ) { innerPadding ->
         content(innerPadding)
     }
@@ -76,7 +94,6 @@ private fun BottomNavigation(navController: NavController) {
                 onClick = {
                     if (currentRoute != item.route) {
                         if (item.route == Routes.Home.route) {
-                            // Special handling for Home navigation
                             navController.navigate(Routes.Home.route) {
                                 popUpTo(Routes.Home.route) {
                                     inclusive = true
@@ -84,7 +101,6 @@ private fun BottomNavigation(navController: NavController) {
                             }
                         } else {
                             navController.navigate(item.route) {
-                                // Pop up to Home but keep Home in the back stack
                                 popUpTo(Routes.Home.route) {
                                     saveState = true
                                 }

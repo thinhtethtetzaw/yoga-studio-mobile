@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "140181823484",
+    "project_id": "yoga-app-9c322",
+    "storage_bucket": "yoga-app-9c322.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:140181823484:android:055631ac6737abe97c5c79",
+        "android_client_info": {
+          "package_name": "com.example.universalyogaapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCrYVBFFOaD8quoH_6XLrj2B6CcgpyNRLA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

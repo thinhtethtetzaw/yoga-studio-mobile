@@ -27,6 +27,7 @@ import com.example.universalyogaapp.screens.InstructorsScreen
 import com.example.universalyogaapp.screens.ParticipantsScreen
 import com.example.universalyogaapp.screens.ProfileScreen
 import androidx.compose.material3.MaterialTheme
+import com.example.universalyogaapp.screens.CreateCourseScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -72,6 +73,9 @@ class MainActivity : ComponentActivity() {
                         composable(Routes.Profile.route) {
                             ProfileScreen(navController = navController)
                         }
+                        composable(Routes.CreateCourse.route) {
+                            CreateCourseScreen(navController)
+                        }
                     }
                 )
             }
@@ -90,11 +94,11 @@ fun IntroScreen(navController: NavController) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Image(
-            painter = painterResource(id = R.drawable.yoga_illustration),
-            contentDescription = "Yoga Illustration",
-            modifier = Modifier.size(300.dp)
-        )
+        // Image(
+        //     painter = painterResource(id = R.drawable.yoga_illustration),
+        //     contentDescription = "Yoga Illustration",
+        //     modifier = Modifier.size(300.dp)
+        // )
 
         LottieAnimation()
         
