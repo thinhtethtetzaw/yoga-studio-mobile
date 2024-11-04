@@ -29,6 +29,9 @@ import com.example.universalyogaapp.screens.ProfileScreen
 import androidx.compose.material3.MaterialTheme
 import com.example.universalyogaapp.screens.CreateCourseScreen
 import com.example.universalyogaapp.screens.CreateInstructorScreen
+import com.example.universalyogaapp.screens.CourseDetailScreen
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -79,6 +82,15 @@ class MainActivity : ComponentActivity() {
                         }
                         composable(Routes.CreateCourse.route) {
                             CreateCourseScreen(navController)
+                        }
+                        composable(
+                            route = "course_detail/{courseId}",
+                            arguments = listOf(navArgument("courseId") { type = NavType.LongType })
+                        ) { backStackEntry ->
+                            CourseDetailScreen(
+                                navController = navController,
+                                courseId = backStackEntry.arguments?.getLong("courseId") ?: 0L
+                            )
                         }
                     }
                 )

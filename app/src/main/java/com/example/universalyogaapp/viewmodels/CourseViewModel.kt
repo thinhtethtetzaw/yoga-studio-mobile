@@ -31,4 +31,14 @@ class CourseViewModel(application: Application) : AndroidViewModel(application) 
             repository.insertCourse(course)
         }
     }
+
+    fun getCourseById(id: Long): Flow<Course?> {
+        return repository.getCourseById(id)
+    }
+
+    fun deleteCourse(course: Course) {
+        viewModelScope.launch {
+            repository.deleteCourse(course)
+        }
+    }
 } 

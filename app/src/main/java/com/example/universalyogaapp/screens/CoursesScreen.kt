@@ -26,6 +26,9 @@ import com.example.universalyogaapp.BottomNavItem
 import com.example.universalyogaapp.data.Course
 import com.example.universalyogaapp.viewmodels.CourseViewModel
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
+import com.example.universalyogaapp.components.CommonScaffold
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,118 +38,75 @@ fun CoursesScreen(
 ) {
     val courses by courseViewModel.allCourses.collectAsState()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { 
-                    Text(
-                        "Courses",
-                        style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = Color.DarkGray
-                    )
-                },
-                actions = {
-                    OutlinedButton(
-                        onClick = { navController.navigate("create_course") },
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary),
-                        modifier = Modifier.padding(end = 16.dp),
-                        shape = RoundedCornerShape(4.dp)
-                    ) {
-                        Text("+ Add", color = MaterialTheme.colorScheme.secondary, style = MaterialTheme.typography.bodyLarge)
-                    }
-                }
-            )
-        },
-        bottomBar = {
-            NavigationBar(
-                containerColor = Color.White,
-                modifier = Modifier.fillMaxWidth()
+    CommonScaffold(
+        navController = navController,
+        content = { padding ->
+            Column(
+                modifier = Modifier.padding(top = padding.calculateTopPadding())
             ) {
-                val items = listOf(
-                    BottomNavItem("Home", Icons.Default.Home, route = Routes.Home.route),
-                    BottomNavItem(
-                        title = "Courses",
-                        iconResId = R.drawable.ic_course,
-                        route = Routes.Courses.route
-                    ),
-                    BottomNavItem(
-                        title = "Classes",
-                        icon = Icons.Default.DateRange,
-                        route = Routes.Classes.route
-                    ),
-                    BottomNavItem(
-                        title = "Profile",
-                        icon = Icons.Default.AccountCircle,
-                        route = Routes.Profile.route
-                    )
+                TopAppBar(
+                    title = { 
+                        Text(
+                            "Courses",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.DarkGray
+                        )
+                    },
+                    actions = {
+                        OutlinedButton(
+                            onClick = { navController.navigate("create_course") },
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary),
+                            modifier = Modifier.padding(end = 16.dp),
+                            shape = RoundedCornerShape(4.dp)
+                        ) {
+                            Text("+ Add", color = MaterialTheme.colorScheme.secondary, style = MaterialTheme.typography.bodyLarge)
+                        }
+                    }
                 )
 
-                items.forEach { item ->
-                    NavigationBarItem(
-                        icon = {
-                            if (item.icon != null) {
-                                Icon(item.icon, contentDescription = item.title)
-                            } else if (item.iconResId != null) {
-                                Icon(
-                                    painter = painterResource(id = item.iconResId),
-                                    contentDescription = item.title
-                                )
-                            }
-                        },
-                        label = { Text(item.title) },
-                        selected = item.route == Routes.Courses.route,
-                        onClick = { 
-                            navController.navigate(item.route) {
-                                popUpTo(Routes.Home.route) {
-                                    saveState = true
-                                }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = MaterialTheme.colorScheme.primary,
-                            unselectedIconColor = Color.Gray,
-                            selectedTextColor = MaterialTheme.colorScheme.primary,
-                            unselectedTextColor = Color.Gray,
-                            indicatorColor = Color.White
+                if (courses.isEmpty()) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "No courses available.\nClick + to add a new course.",
+                            style = MaterialTheme.typography.bodyLarge
                         )
-                    )
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(
+                            start = 16.dp,
+                            end = 16.dp,
+                            top = 8.dp,
+                            bottom = padding.calculateBottomPadding() + 16.dp
+                        ),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        items(courses) { course ->
+                            CourseCard(
+                                course = course,
+                                navController = navController
+                            )
+                        }
+                    }
                 }
             }
         }
-    ) { padding ->
-        if (courses.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "No courses available.\nClick + to add a new course.",
-                    style = MaterialTheme.typography.bodyLarge
-                )
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                items(courses) { course ->
-                    CourseCard(course = course)
-                }
-            }
-        }
-    }
+    )
 }
 
 @Composable
-fun CourseCard(course: Course) {
+fun CourseCard(course: Course, navController: NavController) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable {
+                navController.navigate("course_detail/${course.id}")
+            },
         colors = CardDefaults.cardColors(
             containerColor = Color.White
         ),
