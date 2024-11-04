@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Delete
+import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -19,4 +20,7 @@ interface CourseDao {
 
     @Delete
     suspend fun deleteCourse(course: Course)
+
+    @Update
+    suspend fun updateCourse(course: Course)
 } 

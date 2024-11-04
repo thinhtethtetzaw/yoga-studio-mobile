@@ -14,7 +14,7 @@ data class Course(
     val duration: Int,
     val pricePerClass: Double,
     val typeOfClass: String,
-    val description: String,
+    val description: String?,
     val difficultyLevel: String
 )
 

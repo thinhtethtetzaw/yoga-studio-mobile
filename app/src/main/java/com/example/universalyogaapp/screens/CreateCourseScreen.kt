@@ -30,15 +30,39 @@ fun CreateCourseScreen(
     navController: NavController,
     courseViewModel: CourseViewModel = viewModel()
 ) {
-    var courseName by remember { mutableStateOf("") }
-    var selectedDays by remember { mutableStateOf(setOf<String>()) }
-    var fromTime by remember { mutableStateOf("") }
-    var toTime by remember { mutableStateOf("") }
-    var capacity by remember { mutableStateOf("") }
-    var level by remember { mutableStateOf("") }
-    var type by remember { mutableStateOf("") }
-    var pricePerClass by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
+    CreateCourseFormContent(
+        navController = navController,
+        courseViewModel = courseViewModel,
+        isEditing = false
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CreateCourseFormContent(
+    navController: NavController,
+    courseViewModel: CourseViewModel,
+    isEditing: Boolean,
+    initialCourseName: String = "",
+    initialSelectedDays: Set<String> = emptySet(),
+    initialFromTime: String = "",
+    initialToTime: String = "",
+    initialCapacity: String = "",
+    initialLevel: String = "",
+    initialType: String = "",
+    initialPricePerClass: String = "",
+    initialDescription: String = "",
+    existingCourseId: Int = 0
+) {
+    var courseName by remember(initialCourseName) { mutableStateOf(initialCourseName) }
+    var selectedDays by remember(initialSelectedDays) { mutableStateOf(initialSelectedDays) }
+    var fromTime by remember(initialFromTime) { mutableStateOf(initialFromTime) }
+    var toTime by remember(initialToTime) { mutableStateOf(initialToTime) }
+    var capacity by remember(initialCapacity) { mutableStateOf(initialCapacity) }
+    var level by remember(initialLevel) { mutableStateOf(initialLevel) }
+    var type by remember(initialType) { mutableStateOf(initialType) }
+    var pricePerClass by remember(initialPricePerClass) { mutableStateOf(initialPricePerClass) }
+    var description by remember(initialDescription) { mutableStateOf(initialDescription) }
 
     // Dropdown states
     var expandedFromTimeDropdown by remember { mutableStateOf(false) }
@@ -477,6 +501,7 @@ fun CreateCourseScreen(
                     onClick = {
                         if (validateInputs()) {
                             val course = Course(
+                                id = if (isEditing) existingCourseId else 0,
                                 courseName = courseName,
                                 daysOfWeek = selectedDays.joinToString(","),
                                 timeOfCourse = "$fromTime - $toTime",
@@ -487,14 +512,18 @@ fun CreateCourseScreen(
                                 description = description,
                                 difficultyLevel = level
                             )
-                            courseViewModel.insertCourse(course)
+                            if (isEditing) {
+                                courseViewModel.updateCourse(course)
+                            } else {
+                                courseViewModel.insertCourse(course)
+                            }
                             navController.navigateUp()
                         }
                     },
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(6.dp)
                 ) {
-                    Text("Create")
+                    Text(if (isEditing) "Update" else "Create")
                 }
             }
             Spacer(modifier = Modifier.height(16.dp))
