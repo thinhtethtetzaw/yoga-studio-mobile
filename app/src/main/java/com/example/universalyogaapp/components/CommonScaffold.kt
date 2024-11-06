@@ -24,6 +24,7 @@ import com.example.universalyogaapp.Routes
 @Composable
 fun CommonScaffold(
     navController: NavController,
+    title: String? = null,
     floatingActionButton: @Composable (() -> Unit)? = null,
     content: @Composable (PaddingValues) -> Unit
 ) {
@@ -33,7 +34,7 @@ fun CommonScaffold(
         topBar = {
             if (!isHomeScreen) {
                 CenterAlignedTopAppBar(
-                    title = { Text(text = "Universal Yoga") },
+                    title = { Text(text = title ?: "Universal Yoga") },
                     navigationIcon = {
                         IconButton(onClick = { navController.navigateUp() }) {
                             Icon(Icons.Default.ArrowBackIosNew, "Back")

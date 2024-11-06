@@ -6,24 +6,35 @@ import androidx.lifecycle.viewModelScope
 import com.example.universalyogaapp.data.Course
 import com.example.universalyogaapp.data.CourseRepository
 import com.example.universalyogaapp.data.YogaDatabase
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.stateIn
+import com.example.universalyogaapp.DatabaseHelper
+import com.example.universalyogaapp.data.CourseWithClassCount
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 class CourseViewModel(application: Application) : AndroidViewModel(application) {
     private val repository: CourseRepository
-    val allCourses: StateFlow<List<Course>>
+    private val dbHelper = DatabaseHelper(application)
+    private val _coursesWithCount = MutableStateFlow<List<CourseWithClassCount>>(emptyList())
+    val coursesWithCount: StateFlow<List<CourseWithClassCount>> = _coursesWithCount
     
     init {
         val courseDao = YogaDatabase.getDatabase(application).courseDao()
         repository = CourseRepository(courseDao)
-        allCourses = repository.allCourses.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
-        )
+        loadCoursesWithCount()
+    }
+
+    private fun loadCoursesWithCount() {
+        viewModelScope.launch {
+            repository.allCourses.collect { courses ->
+                val coursesWithCount = courses.map { course ->
+                    CourseWithClassCount(
+                        course = course,
+                        classCount = dbHelper.getClassCountForCourse(course.courseName)
+                    )
+                }
+                _coursesWithCount.emit(coursesWithCount)
+            }
+        }
     }
 
     fun insertCourse(course: Course) {

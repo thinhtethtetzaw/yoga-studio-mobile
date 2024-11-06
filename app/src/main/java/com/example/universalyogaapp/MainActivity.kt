@@ -33,6 +33,7 @@ import com.example.universalyogaapp.screens.CourseDetailScreen
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import com.example.universalyogaapp.screens.EditCourseScreen
+import com.example.universalyogaapp.screens.AddClassScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -99,6 +100,9 @@ class MainActivity : ComponentActivity() {
                         ) { backStackEntry ->
                             val courseId = backStackEntry.arguments?.getLong("courseId") ?: 0L
                             EditCourseScreen(navController = navController, courseId = courseId)
+                        }
+                        composable(Routes.AddClass.route) {
+                            AddClassScreen(navController)
                         }
                     }
                 )

@@ -23,16 +23,26 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import com.example.universalyogaapp.components.CommonScaffold
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.window.DialogProperties
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import com.example.universalyogaapp.viewmodels.ClassViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CourseDetailScreen(
     navController: NavController,
     courseId: Long,
-    courseViewModel: CourseViewModel = viewModel()
+    courseViewModel: CourseViewModel = viewModel(),
+    classViewModel: ClassViewModel = viewModel()
 ) {
     val course by courseViewModel.getCourseById(courseId).collectAsState(initial = null)
+    val classes by classViewModel.classes.collectAsState()
     var showDeleteDialog by remember { mutableStateOf(false) }
+
+    val courseClasses = classes.filter { it.courseName == course?.courseName }
 
     CommonScaffold(
         navController = navController,
@@ -74,7 +84,15 @@ fun CourseDetailScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "${course.timeOfCourse} | ${course.duration/60} Hours",
+                                text = "${course.timeOfCourse} | ${course.duration / 60} Hours",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = Color.Gray
+                            )
+                        }
+
+                        course.description?.let { description ->
+                            Text(
+                                text = "Description: ${description}",
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = Color.Gray
                             )
@@ -111,14 +129,65 @@ fun CourseDetailScreen(
                         }
 
                         Text(
-                            text = "2 Classes",
+                            text = "${courseClasses.size} ${if (courseClasses.size > 1) "Classes" else "Class"}",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(vertical = 16.dp)
                         )
 
-                        // Class cards would go here
-                        // You might want to create a separate composable for class cards
+                        if (courseClasses.isEmpty()) {
+                            Text(
+                                text = "No classes scheduled yet",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        } else {
+                            LazyColumn(
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                items(courseClasses) { yogaClass ->
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 4.dp),
+                                        shape = RoundedCornerShape(8.dp),
+                                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                                    ) {
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(16.dp)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    text = yogaClass.name,
+                                                    style = MaterialTheme.typography.titleMedium,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                                Text(
+                                                    text = formatDate(yogaClass.date),
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    color = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                            
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            
+                                            Text(
+                                                text = "Instructor: ${yogaClass.instructorName}",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -219,6 +288,16 @@ fun CourseDetailScreen(
             modifier = Modifier.padding(horizontal = 16.dp),
             shape = RoundedCornerShape(8.dp)
         )
+    }
+}
+
+private fun formatDate(dateString: String): String {
+    return try {
+        val date = LocalDate.parse(dateString)
+        val formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy")
+        date.format(formatter)
+    } catch (e: Exception) {
+        dateString
     }
 }
 

@@ -24,6 +24,7 @@ import com.example.universalyogaapp.R
 import com.example.universalyogaapp.Routes
 import com.example.universalyogaapp.BottomNavItem
 import com.example.universalyogaapp.data.Course
+import com.example.universalyogaapp.data.CourseWithClassCount
 import com.example.universalyogaapp.viewmodels.CourseViewModel
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
@@ -36,7 +37,7 @@ fun CoursesScreen(
     navController: NavController,
     courseViewModel: CourseViewModel = viewModel()
 ) {
-    val courses by courseViewModel.allCourses.collectAsState()
+    val coursesWithCount by courseViewModel.coursesWithCount.collectAsState()
 
     CommonScaffold(
         navController = navController,
@@ -65,7 +66,7 @@ fun CoursesScreen(
                     }
                 )
 
-                if (courses.isEmpty()) {
+                if (coursesWithCount.isEmpty()) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -86,10 +87,10 @@ fun CoursesScreen(
                         ),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        items(courses) { course ->
+                        items(coursesWithCount) { courseWithCount ->
                             CourseCard(
-                                course = course,
-                                navController = navController
+                                courseWithCount = courseWithCount,
+                                onClick = { navController.navigate("course_detail/${courseWithCount.course.id}") }
                             )
                         }
                     }
@@ -100,97 +101,92 @@ fun CoursesScreen(
 }
 
 @Composable
-fun CourseCard(course: Course, navController: NavController) {
+fun CourseCard(courseWithCount: CourseWithClassCount, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable {
-                navController.navigate("course_detail/${course.id}")
-            },
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
-        shape = RoundedCornerShape(8.dp)
+            .padding(vertical = 4.dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(6.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
+            Surface(
+                modifier = Modifier.size(48.dp),
+                shape = RoundedCornerShape(6.dp),
+                color = MaterialTheme.colorScheme.background,
             ) {
-                Row(
-                    verticalAlignment = Alignment.Top,
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Surface(
-                        modifier = Modifier.size(48.dp),
-                        shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.background,
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_course),
-                            contentDescription = null,
-                            modifier = Modifier
-                                .padding(12.dp)
-                                .size(24.dp),
-                            colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.secondary)
-                        )
-                    }
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(2.dp)
-                    ) {
-                        Text(
-                            text = course.daysOfWeek.split(",").joinToString(", "),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = Color.Gray
-                        )
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Schedule,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp),
-                                tint = MaterialTheme.colorScheme.secondary
-                            )
-                            Text(
-                                text = "${course.timeOfCourse} | ${course.duration/60} Hours",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.secondary
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = course.courseName,
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.DarkGray
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "capacity: ${course.capacity}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Color.Gray
-                        )
-                        Text(
-                            text = "${course.daysOfWeek.split(",").size} classes",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Color.Gray
-                        )
-                    }
-                }
-                Text(
-                    text = "£${course.pricePerClass}",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_course),
+                    contentDescription = "Instructor Icon",
+                    modifier = Modifier
+                        .padding(10.dp)
+                        .size(28.dp),
+                    tint = MaterialTheme.colorScheme.secondary
                 )
             }
+
+            // Content
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = courseWithCount.course.daysOfWeek,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Schedule,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "${courseWithCount.course.timeOfCourse} | ${courseWithCount.course.duration / 60} Hours",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                Text(
+                    text = courseWithCount.course.courseName,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                )
+
+                Text(
+                    text = "capacity: ${courseWithCount.course.capacity}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                )
+                Text(
+                    text = "${courseWithCount.classCount} ${if (courseWithCount.classCount > 1) "Classes" else "Class"}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            // Price
+            Text(
+                text = "$${courseWithCount.course.pricePerClass}",
+                style = MaterialTheme.typography.titleMedium,
+                color = Color(0xFFE57373),
+                fontWeight = FontWeight.Bold
+            )
         }
     }
 }
