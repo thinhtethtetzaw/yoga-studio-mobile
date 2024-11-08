@@ -407,4 +407,26 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         }
         return db.update(TABLE_CLASSES, values, "$COLUMN_CLASS_ID = ?", arrayOf(id.toString()))
     }
+
+    fun getAllInstructorNames(): List<String> {
+        val instructors = mutableListOf<String>()
+        val db = this.readableDatabase
+        val cursor = db.query(
+            "instructors",
+            arrayOf("name"),
+            null,
+            null,
+            null,
+            null,
+            "name ASC"
+        )
+
+        with(cursor) {
+            while (moveToNext()) {
+                instructors.add(getString(getColumnIndexOrThrow("name")))
+            }
+        }
+        cursor.close()
+        return instructors
+    }
 }

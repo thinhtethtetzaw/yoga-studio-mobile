@@ -16,8 +16,12 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
     private val _classes = MutableStateFlow<List<YogaClass>>(emptyList())
     val classes: StateFlow<List<YogaClass>> = _classes
 
+    private val _instructors = MutableStateFlow<List<String>>(emptyList())
+    val instructors: StateFlow<List<String>> = _instructors
+
     init {
         loadClasses()
+        loadInstructors()
     }
 
     fun loadClasses() {
@@ -93,6 +97,12 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
                 println("Error updating class: ${e.message}")
                 e.printStackTrace()
             }
+        }
+    }
+
+    fun loadInstructors() {
+        viewModelScope.launch {
+            _instructors.value = dbHelper.getAllInstructorNames()
         }
     }
 } 

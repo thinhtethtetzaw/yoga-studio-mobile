@@ -28,6 +28,10 @@ import androidx.compose.foundation.background
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 
 
 @Composable
@@ -94,6 +98,7 @@ fun ClassesScreen(navController: NavController) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ClassCard(
     yogaClass: YogaClass,
@@ -303,6 +308,15 @@ private fun ClassCard(
         var editCourseName by remember { mutableStateOf(yogaClass.courseName) }
         var editDate by remember { mutableStateOf(yogaClass.date) }
         var editComment by remember { mutableStateOf(yogaClass.comment ?: "") }
+        var expanded by remember { mutableStateOf(false) }
+        
+        // Collect instructors
+        val instructors by classViewModel.instructors.collectAsState()
+        
+        // Load instructors when dialog opens
+        LaunchedEffect(Unit) {
+            classViewModel.loadInstructors()
+        }
 
         AlertDialog(
             onDismissRequest = { showEditDialog = false },
@@ -326,12 +340,40 @@ private fun ClassCard(
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    OutlinedTextField(
-                        value = editInstructorName,
-                        onValueChange = { editInstructorName = it },
-                        label = { Text("Instructor Name") },
+                    // Replace the instructor TextField with ExposedDropdownMenuBox
+                    ExposedDropdownMenuBox(
+                        expanded = expanded,
+                        onExpandedChange = { expanded = it },
                         modifier = Modifier.fillMaxWidth()
-                    )
+                    ) {
+                        OutlinedTextField(
+                            value = editInstructorName,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Instructor Name") },
+                            trailingIcon = {
+                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor()
+                        )
+
+                        ExposedDropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false }
+                        ) {
+                            instructors.forEach { instructor ->
+                                DropdownMenuItem(
+                                    text = { Text(instructor) },
+                                    onClick = {
+                                        editInstructorName = instructor
+                                        expanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
 
                     OutlinedTextField(
                         value = editCourseName,
