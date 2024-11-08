@@ -26,6 +26,7 @@ import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
 import com.example.universalyogaapp.viewmodels.ClassViewModel
+import com.example.universalyogaapp.components.DatePickerField
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -186,23 +187,9 @@ fun AddClassScreen(navController: NavController) {
             }
 
             // Date Field with Date Picker
-            OutlinedTextField(
-                value = if (selectedDate.isNotEmpty()) {
-                    "$selectedDayOfWeek, $selectedDate"
-                } else {
-                    ""
-                },
-                onValueChange = { },
-                readOnly = true,
-                label = { Text("Select Date") },
-                trailingIcon = {
-                    IconButton(onClick = { showDatePicker = true }) {
-                        Icon(
-                            imageVector = Icons.Default.DateRange,
-                            contentDescription = "Select date"
-                        )
-                    }
-                },
+            DatePickerField(
+                value = selectedDate,
+                onDateSelected = { selectedDate = it },
                 modifier = Modifier.fillMaxWidth()
             )
 

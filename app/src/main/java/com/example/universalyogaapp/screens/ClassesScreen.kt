@@ -32,6 +32,11 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import android.app.DatePickerDialog
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import com.example.universalyogaapp.components.DatePickerField
 
 
 @Composable
@@ -310,6 +315,27 @@ private fun ClassCard(
         var editComment by remember { mutableStateOf(yogaClass.comment ?: "") }
         var expanded by remember { mutableStateOf(false) }
         
+        val context = LocalContext.current
+        
+        // Parse the initial date
+        val initialDate = try {
+            LocalDate.parse(yogaClass.date)
+        } catch (e: Exception) {
+            LocalDate.now()
+        }
+        
+        // Create date picker
+        val datePickerDialog = DatePickerDialog(
+            context,
+            { _, year, month, dayOfMonth ->
+                val selectedDate = LocalDate.of(year, month + 1, dayOfMonth)
+                editDate = selectedDate.format(DateTimeFormatter.ISO_DATE)
+            },
+            initialDate.year,
+            initialDate.monthValue - 1,
+            initialDate.dayOfMonth
+        )
+
         // Collect instructors
         val instructors by classViewModel.instructors.collectAsState()
         
@@ -382,10 +408,9 @@ private fun ClassCard(
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    OutlinedTextField(
+                    DatePickerField(
                         value = editDate,
-                        onValueChange = { editDate = it },
-                        label = { Text("Date") },
+                        onDateSelected = { editDate = it },
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -451,8 +476,7 @@ private fun ClassCard(
 private fun formatDate(dateString: String): String {
     return try {
         val date = LocalDate.parse(dateString)
-        val formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy")
-        date.format(formatter)
+        date.format(DateTimeFormatter.ofPattern("MMM dd, yyyy"))
     } catch (e: Exception) {
         dateString
     }
