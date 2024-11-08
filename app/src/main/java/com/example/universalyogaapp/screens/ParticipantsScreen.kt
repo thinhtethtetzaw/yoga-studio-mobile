@@ -12,7 +12,7 @@ import com.example.universalyogaapp.components.CommonScaffold
 
 @Composable
 fun ParticipantsScreen(navController: NavController) {
-    CommonScaffold(navController = navController) { paddingValues ->
+    CommonScaffold(navController = navController, title = "Participant") { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()

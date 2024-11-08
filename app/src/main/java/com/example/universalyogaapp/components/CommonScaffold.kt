@@ -2,11 +2,14 @@ package com.example.universalyogaapp.components
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -24,104 +27,92 @@ import com.example.universalyogaapp.Routes
 @Composable
 fun CommonScaffold(
     navController: NavController,
-    title: String? = null,
-    floatingActionButton: @Composable (() -> Unit)? = null,
+    title: String,
+    actions: @Composable RowScope.() -> Unit = {},
+    floatingActionButton: @Composable () -> Unit = {},
     content: @Composable (PaddingValues) -> Unit
 ) {
-    val isHomeScreen = navController.currentDestination?.route == Routes.Home.route
-
     Scaffold(
         topBar = {
-            if (!isHomeScreen) {
-                CenterAlignedTopAppBar(
-                    title = { Text(text = title ?: "Universal Yoga") },
+            if (navController.currentDestination?.route != Routes.Home.route) {
+                TopAppBar(
+                    title = { Text(text = title) },
                     navigationIcon = {
-                        IconButton(onClick = { navController.navigateUp() }) {
-                            Icon(Icons.Default.ArrowBackIosNew, "Back")
+                        if (navController.previousBackStackEntry != null) {
+                            IconButton(onClick = { navController.navigateUp() }) {
+                                Icon(Icons.Default.ArrowBackIosNew, contentDescription = "Back")
+                            }
                         }
-                    }
+                    },
+                    actions = actions
                 )
             }
         },
-        bottomBar = { BottomNavigation(navController) },
-        floatingActionButton = if (floatingActionButton != null) {
-            floatingActionButton
-        } else {
-            {}
-        }
-    ) { innerPadding ->
-        content(innerPadding)
-    }
-}
-
-@Composable
-private fun BottomNavigation(navController: NavController) {
-    NavigationBar(
-        containerColor = Color.White,
-        tonalElevation = 8.dp,
-    ) {
-        val items = listOf(
-            BottomNavItem("Home", icon = Icons.Filled.Home, route = Routes.Home.route),
-            BottomNavItem("Courses", iconResId = R.drawable.ic_course, route = Routes.Courses.route),
-            BottomNavItem("Classes", icon = Icons.Filled.DateRange, route = Routes.Classes.route),
-            BottomNavItem("Profile", icon = Icons.Filled.AccountCircle, route = Routes.Profile.route)
-        )
-        
-        val currentRoute = navController.currentBackStackEntry?.destination?.route
-
-        items.forEachIndexed { index, item ->
-            NavigationBarItem(
-                icon = {
-                    if (item.icon != null) {
-                        Icon(
-                            imageVector = item.icon,
-                            contentDescription = item.title,
-                            modifier = Modifier.padding(bottom = 2.dp)
-                        )
-                    } else if (item.iconResId != null) {
-                        Icon(
-                            painter = painterResource(id = item.iconResId),
-                            contentDescription = item.title,
-                            modifier = Modifier.padding(bottom = 2.dp)
-                        )
-                    }
-                },
-                label = {
-                    Text(
-                        item.title,
-                        fontSize = 12.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+        bottomBar = {
+            NavigationBar(containerColor = Color.White) {
+                NavigationBarItem(
+                    icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
+                    label = { Text("Home") },
+                    selected = navController.currentDestination?.route == Routes.Home.route,
+                    onClick = { navController.navigate(Routes.Home.route) },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = MaterialTheme.colorScheme.primary,
+                        selectedTextColor = MaterialTheme.colorScheme.primary,
+                        indicatorColor = Color.White
                     )
-                },
-                selected = currentRoute == item.route,
-                onClick = {
-                    if (currentRoute != item.route) {
-                        if (item.route == Routes.Home.route) {
-                            navController.navigate(Routes.Home.route) {
-                                popUpTo(Routes.Home.route) {
-                                    inclusive = true
-                                }
-                            }
-                        } else {
-                            navController.navigate(item.route) {
-                                popUpTo(Routes.Home.route) {
-                                    saveState = true
-                                }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        }
-                    }
-                },
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = MaterialTheme.colorScheme.primary,
-                    selectedTextColor = MaterialTheme.colorScheme.primary,
-                    unselectedIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                    unselectedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                    indicatorColor = Color.Transparent
                 )
-            )
-        }
+                NavigationBarItem(
+                    icon = { 
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_course),
+                            contentDescription = "Courses"
+                        )
+                    },
+                    label = { Text("Courses") },
+                    selected = navController.currentDestination?.route == Routes.Courses.route,
+                    onClick = { navController.navigate(Routes.Courses.route) },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = MaterialTheme.colorScheme.primary,
+                        selectedTextColor = MaterialTheme.colorScheme.primary,
+                        indicatorColor = Color.White
+                    )
+                )
+                NavigationBarItem(
+                    icon = { Icon(Icons.Default.DateRange, contentDescription = "Classes") },
+                    label = { Text("Classes") },
+                    selected = navController.currentDestination?.route == Routes.Classes.route,
+                    onClick = { 
+                        try {
+                            navController.navigate(Routes.Classes.route) {
+                                popUpTo(Routes.Home.route)
+                                launchSingleTop = true
+                            }
+                        } catch (e: Exception) {
+                            println("Navigation error: ${e.message}")
+                            e.printStackTrace()
+                        }
+                    },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = MaterialTheme.colorScheme.primary,
+                        selectedTextColor = MaterialTheme.colorScheme.primary,
+                        indicatorColor = Color.White
+                    )
+                )
+                NavigationBarItem(
+                    icon = { Icon(Icons.Default.Person, contentDescription = "Instructors") },
+                    label = { Text("Profile") },
+                    selected = navController.currentDestination?.route == Routes.Profile.route,
+                    onClick = { navController.navigate(Routes.Profile.route) },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = MaterialTheme.colorScheme.primary,
+                        selectedTextColor = MaterialTheme.colorScheme.primary,
+                        indicatorColor = Color.White
+                    )
+                )
+            }
+        },
+        floatingActionButton = floatingActionButton
+    ) { paddingValues ->
+        content(paddingValues)
     }
 }

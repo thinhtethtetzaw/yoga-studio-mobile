@@ -13,21 +13,30 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
     companion object {
         private const val DATABASE_NAME = "UniversalYoga.db"
         private const val DATABASE_VERSION = 1
+        
+        // Users table
         private const val TABLE_USERS = "users"
         private const val COLUMN_ID = "id"
         private const val COLUMN_NAME = "name"
         private const val COLUMN_EMAIL = "email"
         private const val COLUMN_PASSWORD = "password"
+        
+        // Instructors table
         private const val TABLE_INSTRUCTORS = "instructors"
         private const val COLUMN_INSTRUCTOR_ID = "id"
         private const val COLUMN_INSTRUCTOR_NAME = "name"
         private const val COLUMN_INSTRUCTOR_EXPERIENCE = "experience"
+        
+        // Classes table
         private const val TABLE_CLASSES = "classes"
-        private const val KEY_CLASS_ID = "id"
-        private const val KEY_CLASS_NAME = "name"
-        private const val KEY_INSTRUCTOR_NAME = "instructor_name"
-        private const val KEY_COURSE_NAME = "course_name"
-        private const val KEY_DATE = "date"
+        private const val COLUMN_CLASS_ID = "id"
+        private const val COLUMN_CLASS_NAME = "name"
+        private const val COLUMN_CLASS_INSTRUCTOR_NAME = "instructor_name"
+        private const val COLUMN_CLASS_COURSE_NAME = "course_name"
+        private const val COLUMN_CLASS_DATE = "date"
+        private const val COLUMN_CLASS_COMMENT = "comment"
+        
+        // Courses table
         private const val TABLE_COURSES = "courses"
         private const val COLUMN_COURSE_ID = "id"
         private const val COLUMN_COURSE_NAME = "name"
@@ -58,11 +67,12 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         // Add classes table creation
         val createClassesTable = """
             CREATE TABLE $TABLE_CLASSES (
-                $KEY_CLASS_ID INTEGER PRIMARY KEY AUTOINCREMENT,
-                $KEY_CLASS_NAME TEXT NOT NULL,
-                $KEY_INSTRUCTOR_NAME TEXT NOT NULL,
-                $KEY_COURSE_NAME TEXT NOT NULL,
-                $KEY_DATE TEXT NOT NULL
+                $COLUMN_CLASS_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                $COLUMN_CLASS_NAME TEXT NOT NULL,
+                $COLUMN_CLASS_INSTRUCTOR_NAME TEXT NOT NULL,
+                $COLUMN_CLASS_COURSE_NAME TEXT NOT NULL,
+                $COLUMN_CLASS_DATE TEXT NOT NULL,
+                $COLUMN_CLASS_COMMENT TEXT
             )
         """.trimIndent()
         
@@ -236,25 +246,38 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         
         try {
             val cursor = db.rawQuery("""
-                SELECT * FROM $TABLE_CLASSES 
-                ORDER BY $KEY_DATE ASC, $KEY_CLASS_NAME ASC
+                SELECT 
+                    $COLUMN_CLASS_ID,
+                    $COLUMN_CLASS_NAME,
+                    $COLUMN_CLASS_INSTRUCTOR_NAME,
+                    $COLUMN_CLASS_COURSE_NAME,
+                    $COLUMN_CLASS_DATE,
+                    $COLUMN_CLASS_COMMENT
+                FROM $TABLE_CLASSES 
+                ORDER BY $COLUMN_CLASS_DATE ASC, $COLUMN_CLASS_NAME ASC
             """.trimIndent(), null)
 
             cursor.use { c ->
-                val idIndex = c.getColumnIndex(KEY_CLASS_ID)
-                val nameIndex = c.getColumnIndex(KEY_CLASS_NAME)
-                val instructorIndex = c.getColumnIndex(KEY_INSTRUCTOR_NAME)
-                val courseIndex = c.getColumnIndex(KEY_COURSE_NAME)
-                val dateIndex = c.getColumnIndex(KEY_DATE)
+                val idIndex = c.getColumnIndex(COLUMN_CLASS_ID)
+                val nameIndex = c.getColumnIndex(COLUMN_CLASS_NAME)
+                val instructorIndex = c.getColumnIndex(COLUMN_CLASS_INSTRUCTOR_NAME)
+                val courseIndex = c.getColumnIndex(COLUMN_CLASS_COURSE_NAME)
+                val dateIndex = c.getColumnIndex(COLUMN_CLASS_DATE)
+                val commentIndex = c.getColumnIndex(COLUMN_CLASS_COMMENT)
 
                 while (c.moveToNext()) {
                     classes.add(
                         YogaClass(
                             id = c.getInt(idIndex),
-                            name = c.getString(nameIndex),
-                            instructorName = c.getString(instructorIndex),
-                            courseName = c.getString(courseIndex),
-                            date = c.getString(dateIndex)
+                            name = c.getString(nameIndex) ?: "",
+                            instructorName = c.getString(instructorIndex) ?: "",
+                            courseName = c.getString(courseIndex) ?: "",
+                            date = c.getString(dateIndex) ?: "",
+                            comment = if (commentIndex != -1 && !c.isNull(commentIndex)) {
+                                c.getString(commentIndex) ?: ""
+                            } else {
+                                ""
+                            }
                         )
                     )
                 }
@@ -270,25 +293,24 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         name: String,
         instructorName: String,
         courseName: String,
-        date: String
+        date: String,
+        comment: String
     ): Long {
         val db = this.writableDatabase
         return try {
             val values = ContentValues().apply {
-                put(KEY_CLASS_NAME, name)
-                put(KEY_INSTRUCTOR_NAME, instructorName)
-                put(KEY_COURSE_NAME, courseName)
-                put(KEY_DATE, date)
+                put("name", name)
+                put("instructor_name", instructorName)
+                put("course_name", courseName)
+                put("date", date)
+                put("comment", comment)
             }
             
-            // For debugging
-            println("Inserting class with values: $values")
-            
-            db.insertOrThrow(TABLE_CLASSES, null, values).also { id ->
-                println("Class inserted with ID: $id")
-            }
+            val id = db.insert("classes", null, values)
+            println("Added class with id: $id") // Debug log
+            id
         } catch (e: Exception) {
-            println("Error inserting class: ${e.message}")
+            println("Error in addClass: ${e.message}") // Debug log
             e.printStackTrace()
             -1
         }
@@ -345,7 +367,7 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         val cursor = db.query(
             TABLE_CLASSES,
             arrayOf("COUNT(*)"),
-            "$KEY_COURSE_NAME = ?",
+            "$COLUMN_CLASS_COURSE_NAME = ?",
             arrayOf(courseName),
             null,
             null,

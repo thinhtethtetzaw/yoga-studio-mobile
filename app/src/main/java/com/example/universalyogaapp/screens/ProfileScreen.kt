@@ -33,7 +33,7 @@ fun ProfileScreen(navController: NavController) {
     val userName = sessionManager.fetchUserName() ?: "User"
     val userEmail = sessionManager.fetchUserEmail() ?: "No email"
 
-    CommonScaffold(navController = navController) { paddingValues ->
+    CommonScaffold(navController = navController, title = "Profile") { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()

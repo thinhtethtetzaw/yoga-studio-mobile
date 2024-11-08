@@ -29,6 +29,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import com.example.universalyogaapp.viewmodels.ClassViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.universalyogaapp.data.YogaClass
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,10 +43,11 @@ fun CourseDetailScreen(
     val classes by classViewModel.classes.collectAsState()
     var showDeleteDialog by remember { mutableStateOf(false) }
 
-    val courseClasses = classes.filter { it.courseName == course?.courseName }
+    val relatedClasses = classes.filter { it.courseName == course?.courseName }
 
     CommonScaffold(
         navController = navController,
+        title = "Course",
         content = { padding ->
             Box(
                 modifier = Modifier
@@ -129,15 +131,15 @@ fun CourseDetailScreen(
                         }
 
                         Text(
-                            text = "${courseClasses.size} ${if (courseClasses.size > 1) "Classes" else "Class"}",
+                            text = "${relatedClasses.size} ${if (relatedClasses.size > 1) "Classes" else "Class"}",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(vertical = 16.dp)
                         )
 
-                        if (courseClasses.isEmpty()) {
+                        if (relatedClasses.isEmpty()) {
                             Text(
-                                text = "No classes scheduled yet",
+                                text = "No related classes yet",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -145,46 +147,9 @@ fun CourseDetailScreen(
                             LazyColumn(
                                 verticalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                items(courseClasses) { yogaClass ->
-                                    Card(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(vertical = 4.dp),
-                                        shape = RoundedCornerShape(8.dp),
-                                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-                                    ) {
-                                        Column(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(16.dp)
-                                        ) {
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                horizontalArrangement = Arrangement.SpaceBetween,
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Text(
-                                                    text = yogaClass.name,
-                                                    style = MaterialTheme.typography.titleMedium,
-                                                    fontWeight = FontWeight.Bold
-                                                )
-                                                Text(
-                                                    text = formatDate(yogaClass.date),
-                                                    style = MaterialTheme.typography.bodyMedium,
-                                                    color = MaterialTheme.colorScheme.primary
-                                                )
-                                            }
-                                            
-                                            Spacer(modifier = Modifier.height(8.dp))
-                                            
-                                            Text(
-                                                text = "Instructor: ${yogaClass.instructorName}",
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                    }
+                                items(relatedClasses) { yogaClass ->
+                                    ClassCard(yogaClass = yogaClass)
+                                    Spacer(modifier = Modifier.height(8.dp))
                                 }
                             }
                         }
@@ -288,6 +253,86 @@ fun CourseDetailScreen(
             modifier = Modifier.padding(horizontal = 16.dp),
             shape = RoundedCornerShape(8.dp)
         )
+    }
+}
+
+@Composable
+private fun ClassCard(yogaClass: YogaClass) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        shape = RoundedCornerShape(8.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.Top
+        ) {
+            // Calendar Icon
+            Surface(
+                modifier = Modifier.size(40.dp),
+                shape = RoundedCornerShape(8.dp),
+                color = Color(0xFFF5F5F5)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.DateRange,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .padding(8.dp)
+                        .size(24.dp),
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
+            }
+            
+            Spacer(modifier = Modifier.width(16.dp))
+            
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Date: ${formatDate(yogaClass.date)}",
+                    color = MaterialTheme.colorScheme.secondary,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+                Text(
+                    text = yogaClass.name,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                
+                Text(
+                    text = yogaClass.courseName,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                )
+
+                Text(
+                    text = "Instructor: ${yogaClass.instructorName}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                
+                if (!yogaClass.comment.isNullOrBlank()) {
+                    Text(
+                        text = "Note: ${yogaClass.comment}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            
+            IconButton(
+                onClick = { /* Handle more options */ }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "More options"
+                )
+            }
+        }
     }
 }
 

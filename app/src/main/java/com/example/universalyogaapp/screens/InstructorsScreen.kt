@@ -244,7 +244,8 @@ fun InstructorsScreen(navController: NavController) {
     }
 
     CommonScaffold(
-        navController = navController
+        navController = navController,
+        title = "Instructor"
     ) { paddingValues ->
         Column(
             modifier = Modifier

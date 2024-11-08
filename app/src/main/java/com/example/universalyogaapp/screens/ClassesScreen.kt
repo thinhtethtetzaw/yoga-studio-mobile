@@ -6,10 +6,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -20,38 +23,37 @@ import com.example.universalyogaapp.viewmodels.ClassViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import androidx.compose.foundation.BorderStroke
+
 
 @Composable
 fun ClassesScreen(navController: NavController) {
     val classViewModel: ClassViewModel = viewModel()
     val classes by classViewModel.classes.collectAsState()
 
-    // Refresh classes when screen becomes active
     LaunchedEffect(Unit) {
         classViewModel.loadClasses()
-    }
-
-    // Refresh when returning to this screen
-    DisposableEffect(navController) {
-        val callback = NavController.OnDestinationChangedListener { _, destination, _ ->
-            if (destination.route == Routes.Classes.route) {
-                classViewModel.loadClasses()
-            }
-        }
-        navController.addOnDestinationChangedListener(callback)
-        onDispose {
-            navController.removeOnDestinationChangedListener(callback)
-        }
     }
 
     CommonScaffold(
         navController = navController,
         title = "Classes",
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { navController.navigate(Routes.AddClass.route) }
+        actions = {
+            OutlinedButton(
+                onClick = { 
+                    try {
+                        navController.navigate(Routes.AddClass.route)
+                    } catch (e: Exception) {
+                        println("Navigation error: ${e.message}")
+                        e.printStackTrace()
+                    }
+                },
+                modifier = Modifier.padding(end = 16.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary),
+                shape = RoundedCornerShape(6.dp)
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Add Class")
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("+ Add", color = MaterialTheme.colorScheme.secondary)
             }
         }
     ) { paddingValues ->
@@ -65,7 +67,7 @@ fun ClassesScreen(navController: NavController) {
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(16.dp),
-                    verticalArrangement = Arrangement.Center,
+                    verticalArrangement = Arrangement.Top,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
@@ -95,47 +97,74 @@ private fun ClassCard(yogaClass: YogaClass) {
             .fillMaxWidth()
             .padding(vertical = 4.dp),
         shape = RoundedCornerShape(8.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
-        Column(
+        Row(
             modifier = Modifier
-                .padding(16.dp)
                 .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.Top
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            // Calendar Icon
+            Surface(
+                modifier = Modifier.size(40.dp),
+                shape = RoundedCornerShape(8.dp),
+                color = Color(0xFFF5F5F5)
             ) {
-                Text(
-                    text = yogaClass.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = formatDate(yogaClass.date),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary
+                Icon(
+                    imageVector = Icons.Default.DateRange,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .padding(8.dp)
+                        .size(24.dp),
+                    tint = MaterialTheme.colorScheme.secondary
                 )
             }
             
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.width(16.dp))
             
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Date: ${formatDate(yogaClass.date)}",
+                    color = MaterialTheme.colorScheme.secondary,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+                Text(
+                    text = yogaClass.name,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                
+                Text(
+                    text = yogaClass.courseName,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                )
+
+                Text(
+                    text = "Instructor: ${yogaClass.instructorName}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                
+                if (!yogaClass.comment.isNullOrBlank()) {
                     Text(
-                        text = "Instructor: ${yogaClass.instructorName}",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Text(
-                        text = "Course: ${yogaClass.courseName}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.secondary
+                        text = "Note: ${yogaClass.comment}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+            }
+            
+            IconButton(
+                onClick = { /* Handle more options */ }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "More options"
+                )
             }
         }
     }

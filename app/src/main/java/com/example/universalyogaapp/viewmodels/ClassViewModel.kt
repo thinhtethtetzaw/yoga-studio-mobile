@@ -27,26 +27,35 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
                     dbHelper.getAllClasses()
                 }
                 _classes.emit(classesList)
-                println("Loaded ${classesList.size} classes") // Debug log
+                println("Loaded ${classesList.size} classes")
             } catch (e: Exception) {
+                println("Error loading classes: ${e.message}")
                 e.printStackTrace()
             }
         }
     }
 
-    fun addClass(name: String, instructorName: String, courseName: String, date: String) {
+    fun addClass(
+        name: String,
+        instructorName: String,
+        courseName: String,
+        date: String,
+        comment: String = ""
+    ) {
         viewModelScope.launch {
             try {
-                val id = withContext(Dispatchers.IO) {
-                    dbHelper.addClass(name, instructorName, courseName, date)
-                }
-                if (id != -1L) {
-                    println("Class added successfully with id: $id") // Debug log
-                    loadClasses() // Reload the classes after successful addition
-                } else {
-                    println("Failed to add class") // Debug log
+                println("Adding class: $name, $instructorName, $courseName, $date, $comment")
+                withContext(Dispatchers.IO) {
+                    val id = dbHelper.addClass(name, instructorName, courseName, date, comment)
+                    println("Class added with id: $id")
+                    if (id != -1L) {
+                        loadClasses()
+                    } else {
+                        println("Failed to add class")
+                    }
                 }
             } catch (e: Exception) {
+                println("Error adding class: ${e.message}")
                 e.printStackTrace()
             }
         }

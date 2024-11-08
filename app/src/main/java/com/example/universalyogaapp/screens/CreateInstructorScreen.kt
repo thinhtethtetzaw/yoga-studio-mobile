@@ -26,7 +26,8 @@ fun CreateInstructorScreen(navController: NavController) {
     var experience by remember { mutableStateOf("") }
 
     CommonScaffold(
-        navController = navController
+        navController = navController,
+        title = "Instructor"
     ) { paddingValues ->
         Column(
             modifier = Modifier

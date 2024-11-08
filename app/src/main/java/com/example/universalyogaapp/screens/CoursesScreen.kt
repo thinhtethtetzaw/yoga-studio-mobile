@@ -41,31 +41,21 @@ fun CoursesScreen(
 
     CommonScaffold(
         navController = navController,
+        title = "Course",
+        actions = {
+            OutlinedButton(
+                onClick = { navController.navigate("create_course") },
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary),
+                modifier = Modifier.padding(end = 16.dp),
+                shape = RoundedCornerShape(4.dp)
+            ) {
+                Text("+ Add", color = MaterialTheme.colorScheme.secondary, style = MaterialTheme.typography.bodyLarge)
+            }
+        },
         content = { padding ->
             Column(
                 modifier = Modifier.padding(top = padding.calculateTopPadding())
             ) {
-                TopAppBar(
-                    title = { 
-                        Text(
-                            "Courses",
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.DarkGray
-                        )
-                    },
-                    actions = {
-                        OutlinedButton(
-                            onClick = { navController.navigate("create_course") },
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary),
-                            modifier = Modifier.padding(end = 16.dp),
-                            shape = RoundedCornerShape(4.dp)
-                        ) {
-                            Text("+ Add", color = MaterialTheme.colorScheme.secondary, style = MaterialTheme.typography.bodyLarge)
-                        }
-                    }
-                )
-
                 if (coursesWithCount.isEmpty()) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
@@ -149,14 +139,14 @@ fun CourseCard(courseWithCount: CourseWithClassCount, onClick: () -> Unit) {
                     Icon(
                         imageVector = Icons.Default.Schedule,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = MaterialTheme.colorScheme.secondary,
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = "${courseWithCount.course.timeOfCourse} | ${courseWithCount.course.duration / 60} Hours",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.secondary
                     )
                 }
 
@@ -164,7 +154,7 @@ fun CourseCard(courseWithCount: CourseWithClassCount, onClick: () -> Unit) {
                     text = courseWithCount.course.courseName,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(vertical = 4.dp)
+                    modifier = Modifier.padding(vertical = 2.dp)
                 )
 
                 Text(
@@ -182,7 +172,7 @@ fun CourseCard(courseWithCount: CourseWithClassCount, onClick: () -> Unit) {
 
             // Price
             Text(
-                text = "$${courseWithCount.course.pricePerClass}",
+                text = "£${courseWithCount.course.pricePerClass}",
                 style = MaterialTheme.typography.titleMedium,
                 color = Color(0xFFE57373),
                 fontWeight = FontWeight.Bold

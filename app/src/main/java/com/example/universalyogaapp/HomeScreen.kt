@@ -48,15 +48,19 @@ fun HomeScreen(navController: NavController) {
     val context = LocalContext.current
     val sessionManager = remember { SessionManager(context) }
 
-    CommonScaffold(navController = navController) { innerPadding ->
+    CommonScaffold(
+        navController = navController,
+        title = "Home"
+    ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .padding(16.dp)
+                .padding(paddingValues)
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             item { Header() }
-            item { Spacer(modifier = Modifier.height(24.dp)) }
+            item { Spacer(modifier = Modifier.height(16.dp)) }
             item { ImageSlider() }
             item { Spacer(modifier = Modifier.height(16.dp)) }
             item { Statistics(navController) }

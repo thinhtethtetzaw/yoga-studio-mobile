@@ -42,6 +42,7 @@ fun AddClassScreen(navController: NavController) {
     var courseName by remember { mutableStateOf("") }
     var selectedDate by remember { mutableStateOf("") }
     var selectedDayOfWeek by remember { mutableStateOf("") }
+    var comment by remember { mutableStateOf("") }
     
     var courseExpanded by remember { mutableStateOf(false) }
     var instructorExpanded by remember { mutableStateOf(false) }
@@ -205,6 +206,15 @@ fun AddClassScreen(navController: NavController) {
                 modifier = Modifier.fillMaxWidth()
             )
 
+            OutlinedTextField(
+                value = comment,
+                onValueChange = { comment = it },
+                label = { Text("Comment (Optional)") },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 3,
+                maxLines = 5
+            )
+
             if (showError) {
                 Text(
                     text = errorMessage,
@@ -235,13 +245,20 @@ fun AddClassScreen(navController: NavController) {
                         }
                         else -> {
                             showError = false
-                            classViewModel.addClass(
-                                name = className.trim(),
-                                instructorName = instructorName.trim(),
-                                courseName = courseName.trim(),
-                                date = selectedDate.trim()
-                            )
-                            navController.navigateUp()
+                            try {
+                                classViewModel.addClass(
+                                    name = className.trim(),
+                                    instructorName = instructorName.trim(),
+                                    courseName = courseName.trim(),
+                                    date = selectedDate.trim(),
+                                    comment = comment.trim()
+                                )
+                                navController.navigateUp()
+                            } catch (e: Exception) {
+                                showError = true
+                                errorMessage = "Error adding class: ${e.message}"
+                                e.printStackTrace()
+                            }
                         }
                     }
                 },

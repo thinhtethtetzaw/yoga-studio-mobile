@@ -102,7 +102,7 @@ class MainActivity : ComponentActivity() {
                             EditCourseScreen(navController = navController, courseId = courseId)
                         }
                         composable(Routes.AddClass.route) {
-                            AddClassScreen(navController)
+                            AddClassScreen(navController = navController)
                         }
                     }
                 )

@@ -6,4 +6,5 @@ data class YogaClass(
     val instructorName: String,
     val courseName: String,
     val date: String,
+    val comment: String?,
 )
