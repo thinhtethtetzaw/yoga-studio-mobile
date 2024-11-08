@@ -37,6 +37,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import com.example.universalyogaapp.components.DatePickerField
+import com.example.universalyogaapp.viewmodels.CourseViewModel
+
 
 
 @Composable
@@ -308,12 +310,16 @@ private fun ClassCard(
     }
 
     if (showEditDialog) {
+        val courseViewModel: CourseViewModel = viewModel()
         var editName by remember { mutableStateOf(yogaClass.name) }
         var editInstructorName by remember { mutableStateOf(yogaClass.instructorName) }
         var editCourseName by remember { mutableStateOf(yogaClass.courseName) }
         var editDate by remember { mutableStateOf(yogaClass.date) }
         var editComment by remember { mutableStateOf(yogaClass.comment ?: "") }
         var expanded by remember { mutableStateOf(false) }
+        var courseExpanded by remember { mutableStateOf(false) }
+        val coursesWithCount by courseViewModel.coursesWithCount.collectAsState()
+
         
         val context = LocalContext.current
         
@@ -401,12 +407,41 @@ private fun ClassCard(
                         }
                     }
 
-                    OutlinedTextField(
-                        value = editCourseName,
-                        onValueChange = { editCourseName = it },
-                        label = { Text("Course Name") },
+                    ExposedDropdownMenuBox(
+                        expanded = courseExpanded,
+                        onExpandedChange = { courseExpanded = it },
                         modifier = Modifier.fillMaxWidth()
-                    )
+                    ) {
+                        OutlinedTextField(
+                            value = editCourseName,
+                            onValueChange = { editComment = it },
+                            readOnly = true,
+                            label = { Text("Select Course") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = courseExpanded) },
+                            modifier = Modifier
+                                .menuAnchor()
+                                .fillMaxWidth()
+                        )
+                        ExposedDropdownMenu(
+                            expanded = courseExpanded,
+                            onDismissRequest = { courseExpanded = false }
+                        ) {
+                            coursesWithCount.forEach { courseWithCount ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            text = courseWithCount.course.courseName,
+                                            style = MaterialTheme.typography.bodyLarge
+                                        )
+                                    },
+                                    onClick = {
+                                        editCourseName = courseWithCount.course.courseName
+                                        courseExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
 
                     DatePickerField(
                         value = editDate,

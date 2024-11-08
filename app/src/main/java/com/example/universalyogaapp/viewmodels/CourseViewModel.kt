@@ -41,6 +41,7 @@ class CourseViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             repository.insertCourse(course)
         }
+
     }
 
     fun getCourseById(id: Long): Flow<Course?> {
