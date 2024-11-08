@@ -383,4 +383,28 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
             0
         }
     }
+
+    fun deleteClass(id: Int) {
+        val db = this.writableDatabase
+        db.delete(TABLE_CLASSES, "$COLUMN_CLASS_ID = ?", arrayOf(id.toString()))
+    }
+
+    fun updateClass(
+        id: Int,
+        name: String,
+        instructorName: String,
+        courseName: String,
+        date: String,
+        comment: String
+    ): Int {
+        val db = this.writableDatabase
+        val values = ContentValues().apply {
+            put(COLUMN_CLASS_NAME, name)
+            put(COLUMN_CLASS_INSTRUCTOR_NAME, instructorName)
+            put(COLUMN_CLASS_COURSE_NAME, courseName)
+            put(COLUMN_CLASS_DATE, date)
+            put(COLUMN_CLASS_COMMENT, comment)
+        }
+        return db.update(TABLE_CLASSES, values, "$COLUMN_CLASS_ID = ?", arrayOf(id.toString()))
+    }
 }

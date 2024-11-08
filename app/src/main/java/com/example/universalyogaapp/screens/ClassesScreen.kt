@@ -24,6 +24,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.ui.window.DialogProperties
 
 
 @Composable
@@ -91,7 +95,14 @@ fun ClassesScreen(navController: NavController) {
 }
 
 @Composable
-private fun ClassCard(yogaClass: YogaClass) {
+private fun ClassCard(
+    yogaClass: YogaClass,
+    classViewModel: ClassViewModel = viewModel()
+) {
+    var showMenu by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var showEditDialog by remember { mutableStateOf(false) }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -158,15 +169,240 @@ private fun ClassCard(yogaClass: YogaClass) {
                 }
             }
             
-            IconButton(
-                onClick = { /* Handle more options */ }
-            ) {
-                Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = "More options"
-                )
+            Box {
+                IconButton(
+                    onClick = { showMenu = true }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "More options",
+                        tint = Color.Gray
+                    )
+                }
+                
+                DropdownMenu(
+                    expanded = showMenu,
+                    onDismissRequest = { showMenu = false },
+                    modifier = Modifier.background(Color.White)
+                ) {
+                    DropdownMenuItem(
+                        text = { 
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "Edit",
+                                    tint = MaterialTheme.colorScheme.secondary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    "Edit",
+                                    color = MaterialTheme.colorScheme.secondary
+                                )
+                            }
+                        },
+                        onClick = {
+                            showMenu = false
+                            showEditDialog = true
+                        },
+                        modifier = Modifier.height(32.dp)
+                    )
+                    DropdownMenuItem(
+                        text = { 
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "Delete",
+                                    tint = Color(0xFFB00020),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    "Delete",
+                                    color = Color(0xFFB00020)
+                                )
+                            }
+                        },
+                        onClick = {
+                            showMenu = false
+                            showDeleteDialog = true
+                        },
+                        modifier = Modifier.height(32.dp)
+                    )
+                }
             }
         }
+    }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Are you sure to delete this class?") },
+            confirmButton = {},
+            dismissButton = {},
+            containerColor = Color.White,
+            tonalElevation = 8.dp,
+            shape = RoundedCornerShape(8.dp),
+            properties = DialogProperties(usePlatformDefaultWidth = false),
+            modifier = Modifier.padding(horizontal = 16.dp),
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = { showDeleteDialog = false },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFFF5F5F5)
+                            ),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text(
+                                "Cancel",
+                                color = Color.Black
+                            )
+                        }
+                        
+                        Button(
+                            onClick = {
+                                classViewModel.deleteClass(yogaClass.id)
+                                showDeleteDialog = false
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFFE57373)
+                            ),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text(
+                                "Confirm",
+                                color = Color.White
+                            )
+                        }
+                    }
+                }
+            }
+        )
+    }
+
+    if (showEditDialog) {
+        var editName by remember { mutableStateOf(yogaClass.name) }
+        var editInstructorName by remember { mutableStateOf(yogaClass.instructorName) }
+        var editCourseName by remember { mutableStateOf(yogaClass.courseName) }
+        var editDate by remember { mutableStateOf(yogaClass.date) }
+        var editComment by remember { mutableStateOf(yogaClass.comment ?: "") }
+
+        AlertDialog(
+            onDismissRequest = { showEditDialog = false },
+            title = { Text("Edit Class") },
+            confirmButton = {},
+            dismissButton = {},
+            containerColor = Color.White,
+            tonalElevation = 8.dp,
+            shape = RoundedCornerShape(8.dp),
+            properties = DialogProperties(usePlatformDefaultWidth = false),
+            modifier = Modifier.padding(horizontal = 16.dp),
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    OutlinedTextField(
+                        value = editName,
+                        onValueChange = { editName = it },
+                        label = { Text("Class Name") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    OutlinedTextField(
+                        value = editInstructorName,
+                        onValueChange = { editInstructorName = it },
+                        label = { Text("Instructor Name") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    OutlinedTextField(
+                        value = editCourseName,
+                        onValueChange = { editCourseName = it },
+                        label = { Text("Course Name") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    OutlinedTextField(
+                        value = editDate,
+                        onValueChange = { editDate = it },
+                        label = { Text("Date") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    OutlinedTextField(
+                        value = editComment,
+                        onValueChange = { editComment = it },
+                        label = { Text("Comment") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = { showEditDialog = false },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFFF5F5F5)
+                            ),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text(
+                                "Cancel",
+                                color = Color.Black
+                            )
+                        }
+                        
+                        Button(
+                            onClick = {
+                                classViewModel.updateClass(
+                                    id = yogaClass.id,
+                                    name = editName,
+                                    instructorName = editInstructorName,
+                                    courseName = editCourseName,
+                                    date = editDate,
+                                    comment = editComment ?: ""
+                                )
+                                showEditDialog = false
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary
+                            ),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text(
+                                "Save",
+                                color = Color.White
+                            )
+                        }
+                    }
+                }
+            }
+        )
     }
 }
 

@@ -60,4 +60,39 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
     }
+
+    fun deleteClass(id: Int) {
+        viewModelScope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    dbHelper.deleteClass(id)
+                }
+                loadClasses() // Reload classes after deletion
+            } catch (e: Exception) {
+                println("Error deleting class: ${e.message}")
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun updateClass(
+        id: Int,
+        name: String,
+        instructorName: String,
+        courseName: String,
+        date: String,
+        comment: String
+    ) {
+        viewModelScope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    dbHelper.updateClass(id, name, instructorName, courseName, date, comment)
+                }
+                loadClasses() // Reload classes after update
+            } catch (e: Exception) {
+                println("Error updating class: ${e.message}")
+                e.printStackTrace()
+            }
+        }
+    }
 } 
