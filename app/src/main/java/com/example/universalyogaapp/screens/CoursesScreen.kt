@@ -1,6 +1,5 @@
 package com.example.universalyogaapp.screens
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -14,16 +13,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.universalyogaapp.R
-import com.example.universalyogaapp.Routes
-import com.example.universalyogaapp.BottomNavItem
-import com.example.universalyogaapp.data.Course
 import com.example.universalyogaapp.data.CourseWithClassCount
 import com.example.universalyogaapp.viewmodels.CourseViewModel
 import androidx.compose.foundation.BorderStroke
@@ -75,7 +70,7 @@ fun CoursesScreen(
                             top = 8.dp,
                             bottom = padding.calculateBottomPadding() + 16.dp
                         ),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         items(coursesWithCount) { courseWithCount ->
                             CourseCard(
@@ -105,7 +100,7 @@ fun CourseCard(courseWithCount: CourseWithClassCount, onClick: () -> Unit) {
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Surface(
                 modifier = Modifier.size(48.dp),

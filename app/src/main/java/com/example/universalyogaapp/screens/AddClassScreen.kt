@@ -1,24 +1,16 @@
 package com.example.universalyogaapp.screens
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.universalyogaapp.components.CommonScaffold
-import com.example.universalyogaapp.DatabaseHelper
-import com.example.universalyogaapp.models.Instructor
 import com.example.universalyogaapp.viewmodels.InstructorViewModel
 import com.example.universalyogaapp.viewmodels.CourseViewModel
 import androidx.compose.foundation.shape.RoundedCornerShape
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.TextButton
@@ -31,9 +23,6 @@ import com.example.universalyogaapp.components.DatePickerField
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddClassScreen(navController: NavController) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val dbHelper = remember { DatabaseHelper(context) }
     val instructorViewModel: InstructorViewModel = viewModel()
     val courseViewModel: CourseViewModel = viewModel()
     val classViewModel: ClassViewModel = viewModel()

@@ -67,8 +67,14 @@ fun CreateInstructorScreen(navController: NavController) {
             Button(
                 onClick = {
                     if (name.isNotBlank() && experience.isNotBlank()) {
-                        viewModel.addInstructor(name, experience)
-                        navController.navigateUp()
+                        viewModel.addInstructor(name, experience) { isSuccessful ->
+                            if (isSuccessful) {
+                                navController.navigateUp()
+                            } else {
+                                // Handle failure
+                                // Show error message
+                            }
+                        }
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),

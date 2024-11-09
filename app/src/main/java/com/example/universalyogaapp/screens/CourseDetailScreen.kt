@@ -12,23 +12,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import androidx.compose.material3.NavigationBarItemDefaults
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
-import com.example.universalyogaapp.BottomNavItem
-import com.example.universalyogaapp.Routes
-import com.example.universalyogaapp.R
 import com.example.universalyogaapp.viewmodels.CourseViewModel
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.example.universalyogaapp.components.CommonScaffold
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.window.DialogProperties
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import com.example.universalyogaapp.viewmodels.ClassViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.universalyogaapp.data.YogaClass
 
 @OptIn(ExperimentalMaterial3Api::class)

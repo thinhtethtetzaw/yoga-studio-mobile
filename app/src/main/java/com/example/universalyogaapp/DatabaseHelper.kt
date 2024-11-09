@@ -7,6 +7,8 @@ import android.database.sqlite.SQLiteOpenHelper
 import com.example.universalyogaapp.models.Instructor
 import com.example.universalyogaapp.data.YogaClass
 import com.example.universalyogaapp.data.Course
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.DatabaseReference
 
 class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
 
@@ -43,6 +45,9 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         private const val COLUMN_COURSE_DESCRIPTION = "description"
         private const val COLUMN_COURSE_DURATION = "duration"
     }
+
+    private val firebaseDatabase: FirebaseDatabase = FirebaseDatabase.getInstance()
+    private val instructorsRef: DatabaseReference = firebaseDatabase.getReference("instructors")
 
     override fun onCreate(db: SQLiteDatabase) {
         val createTable = """

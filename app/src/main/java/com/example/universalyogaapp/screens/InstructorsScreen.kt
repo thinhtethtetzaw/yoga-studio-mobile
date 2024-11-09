@@ -8,8 +8,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
@@ -37,7 +35,6 @@ import com.example.universalyogaapp.Routes
 import com.example.universalyogaapp.components.CommonScaffold
 import com.example.universalyogaapp.models.Instructor
 import com.example.universalyogaapp.viewmodels.InstructorViewModel
-import kotlinx.coroutines.flow.StateFlow
 
 @Composable
 fun InstructorsScreen(navController: NavController) {
