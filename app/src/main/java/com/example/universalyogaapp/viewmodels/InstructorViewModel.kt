@@ -13,6 +13,9 @@ import kotlinx.coroutines.withContext
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.ServerValue
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.ValueEventListener
 
 class InstructorViewModel(application: Application) : AndroidViewModel(application) {
     private val dbHelper = DatabaseHelper(application)
@@ -26,10 +29,32 @@ class InstructorViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     fun loadInstructors() {
-        viewModelScope.launch(Dispatchers.IO) {
-            val instructorsList = dbHelper.getAllInstructors()
-            _instructors.emit(instructorsList)
-        }
+        instructorsRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val instructorsList = mutableListOf<Instructor>()
+                for (instructorSnapshot in snapshot.children) {
+                    try {
+                        val id = instructorSnapshot.child("id").getValue(Long::class.java)?.toInt()
+                        val name = instructorSnapshot.child("name").getValue(String::class.java)
+                        val experience = instructorSnapshot.child("experience").getValue(String::class.java)
+                        
+                        if (id != null && name != null && experience != null) {
+                            instructorsList.add(Instructor(id, name, experience))
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+                
+                viewModelScope.launch {
+                    _instructors.emit(instructorsList)
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                error.toException().printStackTrace()
+            }
+        })
     }
 
     fun addInstructor(name: String, experience: String, onComplete: (Boolean) -> Unit) {
