@@ -25,15 +25,18 @@ import com.example.universalyogaapp.viewmodels.CourseViewModel
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import com.example.universalyogaapp.components.CommonScaffold
+import com.example.universalyogaapp.viewmodels.ClassViewModel
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CoursesScreen(
     navController: NavController,
-    courseViewModel: CourseViewModel = viewModel()
+    courseViewModel: CourseViewModel = viewModel(),
+    classViewModel: ClassViewModel = viewModel()
 ) {
     val courses by courseViewModel.firebaseCourses.collectAsState()
+    val classes by classViewModel.classes.collectAsState()
 
     LaunchedEffect(Unit) {
         courseViewModel.loadCoursesFromFirebase()
@@ -85,8 +88,12 @@ fun CoursesScreen(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     items(courses) { course ->
+                        val classCount = classes.count { it.courseName == course.courseName }
                         CourseCard(
-                            courseWithCount = CourseWithClassCount(course = course, classCount = 0),
+                            courseWithCount = CourseWithClassCount(
+                                course = course, 
+                                classCount = classCount
+                            ),
                             onClick = { navController.navigate("course_detail/${course.id}") }
                         )
                     }
