@@ -32,7 +32,7 @@ fun CoursesScreen(
     navController: NavController,
     courseViewModel: CourseViewModel = viewModel()
 ) {
-    val coursesWithCount by courseViewModel.coursesWithCount.collectAsState()
+    val courses by courseViewModel.firebaseCourses.collectAsState()
 
     CommonScaffold(
         navController = navController,
@@ -51,7 +51,7 @@ fun CoursesScreen(
             Column(
                 modifier = Modifier.padding(top = padding.calculateTopPadding())
             ) {
-                if (coursesWithCount.isEmpty()) {
+                if (courses.isEmpty()) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -72,10 +72,10 @@ fun CoursesScreen(
                         ),
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        items(coursesWithCount) { courseWithCount ->
+                        items(courses) { course ->
                             CourseCard(
-                                courseWithCount = courseWithCount,
-                                onClick = { navController.navigate("course_detail/${courseWithCount.course.id}") }
+                                courseWithCount = CourseWithClassCount(course = course, classCount = 0),
+                                onClick = { navController.navigate("course_detail/${course.id}") }
                             )
                         }
                     }

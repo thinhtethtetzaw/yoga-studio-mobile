@@ -13,6 +13,7 @@ import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
 import android.util.Log
+import com.google.firebase.firestore.FirebaseFirestore
 
 class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
 
@@ -51,8 +52,9 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
     }
 
     private val firebaseDatabase: FirebaseDatabase = FirebaseDatabase.getInstance()
-    private val instructorsRef: DatabaseReference = firebaseDatabase.getReference("instructors")
     private val coursesRef: DatabaseReference = firebaseDatabase.getReference("courses")
+    private val db = FirebaseFirestore.getInstance()
+    private val coursesCollection = db.collection("courses")
 
     override fun onCreate(db: SQLiteDatabase) {
         val createTable = """
@@ -490,17 +492,75 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         })
     }
 
-    fun updateCourseInFirebase(courseId: String, updatedCourse: Course, onComplete: (Boolean) -> Unit) {
-        coursesRef.child(courseId).setValue(updatedCourse)
-            .addOnCompleteListener { task ->
-                onComplete(task.isSuccessful)
-            }
+    fun updateCourseInFirebase(courseId: String, course: Course, callback: (Boolean) -> Unit) {
+        // First find the Firebase key for this course
+        coursesRef.orderByChild("id").equalTo(courseId.toDouble())
+            .addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    if (snapshot.exists()) {
+                        // Get the Firebase key (first child should be our course)
+                        val firebaseKey = snapshot.children.first().key
+                        if (firebaseKey != null) {
+                            // Update the course using the correct Firebase key
+                            coursesRef.child(firebaseKey).setValue(course)
+                                .addOnSuccessListener {
+                                    Log.d("DatabaseHelper", "Successfully updated course in Firebase")
+                                    callback(true)
+                                }
+                                .addOnFailureListener { e ->
+                                    Log.e("DatabaseHelper", "Error updating course", e)
+                                    callback(false)
+                                }
+                        } else {
+                            Log.e("DatabaseHelper", "Firebase key is null")
+                            callback(false)
+                        }
+                    } else {
+                        Log.e("DatabaseHelper", "Course not found in Firebase")
+                        callback(false)
+                    }
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    Log.e("DatabaseHelper", "Error finding course: ${error.message}")
+                    callback(false)
+                }
+            })
     }
 
-    fun deleteCourseFromFirebase(courseId: String, onComplete: (Boolean) -> Unit) {
-        coursesRef.child(courseId).removeValue()
-            .addOnCompleteListener { task ->
-                onComplete(task.isSuccessful)
-            }
+    fun deleteCourseFromFirebase(courseId: String, callback: (Boolean) -> Unit) {
+        // First find the Firebase key for this course
+        coursesRef.orderByChild("id").equalTo(courseId.toDouble())
+            .addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    if (snapshot.exists()) {
+                        // Get the Firebase key (first child should be our course)
+                        val firebaseKey = snapshot.children.first().key
+                        if (firebaseKey != null) {
+                            // Delete the course using the correct Firebase key
+                            coursesRef.child(firebaseKey).removeValue()
+                                .addOnSuccessListener {
+                                    Log.d("DatabaseHelper", "Successfully deleted course from Firebase")
+                                    callback(true)
+                                }
+                                .addOnFailureListener { e ->
+                                    Log.e("DatabaseHelper", "Error deleting course", e)
+                                    callback(false)
+                                }
+                        } else {
+                            Log.e("DatabaseHelper", "Firebase key is null")
+                            callback(false)
+                        }
+                    } else {
+                        Log.e("DatabaseHelper", "Course not found in Firebase")
+                        callback(false)
+                    }
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    Log.e("DatabaseHelper", "Error finding course: ${error.message}")
+                    callback(false)
+                }
+            })
     }
 }

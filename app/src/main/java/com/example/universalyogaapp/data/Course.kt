@@ -22,7 +22,7 @@ data class Course(
     // Required empty constructor for Firebase
     constructor() : this(0, "", "", "", 0, 0, 0.0, "", "", "")
 
-    fun toMap(): Map<String, Any> {
+    fun toMap(): Map<String, Any?> {
         return mapOf(
             "id" to id,
             "courseName" to courseName,

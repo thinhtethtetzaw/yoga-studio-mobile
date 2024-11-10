@@ -23,22 +23,7 @@ class CourseViewModel(application: Application) : AndroidViewModel(application) 
     init {
         val courseDao = YogaDatabase.getDatabase(application).courseDao()
         repository = CourseRepository(courseDao)
-        loadCoursesWithCount()
         loadCoursesFromFirebase()
-    }
-
-    private fun loadCoursesWithCount() {
-        viewModelScope.launch {
-            repository.allCourses.collect { courses ->
-                val coursesWithCount = courses.map { course ->
-                    CourseWithClassCount(
-                        course = course,
-                        classCount = dbHelper.getClassCountForCourse(course.courseName)
-                    )
-                }
-                _coursesWithCount.emit(coursesWithCount)
-            }
-        }
     }
 
     fun insertCourse(course: Course) {
@@ -59,12 +44,16 @@ class CourseViewModel(application: Application) : AndroidViewModel(application) 
     fun deleteCourse(course: Course) {
         viewModelScope.launch {
             repository.deleteCourse(course)
+            // Also delete from Firebase using the course's ID
+            deleteCourseFromFirebase(course.id.toString())
         }
     }
 
     fun updateCourse(course: Course) {
         viewModelScope.launch {
             repository.updateCourse(course)
+            // Also update in Firebase using the course's ID
+            updateCourseInFirebase(course.id.toString(), course)
         }
     }
 
@@ -82,8 +71,12 @@ class CourseViewModel(application: Application) : AndroidViewModel(application) 
     fun loadCoursesFromFirebase() {
         dbHelper.getCoursesFromFirebase { courses ->
             viewModelScope.launch {
-                Log.d("CourseViewModel", "Loaded ${courses.size} courses from Firebase")
-                _firebaseCourses.emit(courses)
+                try {
+                    _firebaseCourses.emit(courses)
+                    Log.d("CourseViewModel", "Loaded ${courses.size} courses from Firebase")
+                } catch (e: Exception) {
+                    Log.e("CourseViewModel", "Error loading courses from Firebase", e)
+                }
             }
         }
     }
@@ -91,8 +84,10 @@ class CourseViewModel(application: Application) : AndroidViewModel(application) 
     fun updateCourseInFirebase(courseId: String, course: Course) {
         dbHelper.updateCourseInFirebase(courseId, course) { success ->
             if (success) {
-                // Optionally handle successful update
+                Log.d("CourseViewModel", "Course successfully updated in Firebase")
                 loadCoursesFromFirebase()
+            } else {
+                Log.e("CourseViewModel", "Failed to update course in Firebase")
             }
         }
     }
@@ -100,8 +95,10 @@ class CourseViewModel(application: Application) : AndroidViewModel(application) 
     fun deleteCourseFromFirebase(courseId: String) {
         dbHelper.deleteCourseFromFirebase(courseId) { success ->
             if (success) {
-                // Optionally handle successful deletion
+                Log.d("CourseViewModel", "Course successfully deleted from Firebase")
                 loadCoursesFromFirebase()
+            } else {
+                Log.e("CourseViewModel", "Failed to delete course from Firebase")
             }
         }
     }

@@ -31,7 +31,9 @@ fun CourseDetailScreen(
     courseViewModel: CourseViewModel = viewModel(),
     classViewModel: ClassViewModel = viewModel()
 ) {
-    val course by courseViewModel.getCourseById(courseId).collectAsState(initial = null)
+    val courses by courseViewModel.firebaseCourses.collectAsState()
+    val course = courses.find { it.id == courseId.toInt() }
+    
     val classes by classViewModel.classes.collectAsState()
     var showDeleteDialog by remember { mutableStateOf(false) }
 
@@ -224,7 +226,9 @@ fun CourseDetailScreen(
                         }
                         Button(
                             onClick = {
-                                course?.let { courseViewModel.deleteCourse(it) }
+                                course?.let { 
+                                    courseViewModel.deleteCourseFromFirebase(it.id.toString())
+                                }
                                 showDeleteDialog = false
                                 navController.navigateUp()
                             },
