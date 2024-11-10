@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface CourseDao {
     @Insert
-    suspend fun insertCourse(course: Course)
+    suspend fun insertCourse(course: Course): Long
 
     @Query("SELECT * FROM courses")
     fun getAllCourses(): Flow<List<Course>>

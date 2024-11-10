@@ -9,6 +9,10 @@ import com.example.universalyogaapp.data.YogaClass
 import com.example.universalyogaapp.data.Course
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.ValueEventListener
+import android.util.Log
 
 class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
 
@@ -48,6 +52,7 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
 
     private val firebaseDatabase: FirebaseDatabase = FirebaseDatabase.getInstance()
     private val instructorsRef: DatabaseReference = firebaseDatabase.getReference("instructors")
+    private val coursesRef: DatabaseReference = firebaseDatabase.getReference("courses")
 
     override fun onCreate(db: SQLiteDatabase) {
         val createTable = """
@@ -433,5 +438,69 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         }
         cursor.close()
         return instructors
+    }
+
+    fun addCourseToFirebase(course: Course, onComplete: (Boolean) -> Unit) {
+        try {
+            val courseId = coursesRef.push().key
+            if (courseId == null) {
+                Log.e("DatabaseHelper", "Failed to generate courseId")
+                onComplete(false)
+                return
+            }
+
+            val courseMap = course.toMap()
+            
+            coursesRef.child(courseId).setValue(courseMap)
+                .addOnSuccessListener {
+                    Log.d("DatabaseHelper", "Successfully added course to Firebase with ID: ${course.id}")
+                    onComplete(true)
+                }
+                .addOnFailureListener { e ->
+                    Log.e("DatabaseHelper", "Error adding course to Firebase", e)
+                    onComplete(false)
+                }
+        } catch (e: Exception) {
+            Log.e("DatabaseHelper", "Exception while adding course to Firebase", e)
+            onComplete(false)
+        }
+    }
+
+    fun getCoursesFromFirebase(onDataReceived: (List<Course>) -> Unit) {
+        coursesRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                try {
+                    val courses = mutableListOf<Course>()
+                    for (courseSnapshot in snapshot.children) {
+                        val course = courseSnapshot.getValue(Course::class.java)
+                        Log.d("DatabaseHelper", "Retrieved course: $course")
+                        course?.let { courses.add(it) }
+                    }
+                    onDataReceived(courses)
+                } catch (e: Exception) {
+                    Log.e("DatabaseHelper", "Error parsing courses from Firebase", e)
+                    onDataReceived(emptyList())
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("DatabaseHelper", "Error reading courses: ${error.message}")
+                onDataReceived(emptyList())
+            }
+        })
+    }
+
+    fun updateCourseInFirebase(courseId: String, updatedCourse: Course, onComplete: (Boolean) -> Unit) {
+        coursesRef.child(courseId).setValue(updatedCourse)
+            .addOnCompleteListener { task ->
+                onComplete(task.isSuccessful)
+            }
+    }
+
+    fun deleteCourseFromFirebase(courseId: String, onComplete: (Boolean) -> Unit) {
+        coursesRef.child(courseId).removeValue()
+            .addOnCompleteListener { task ->
+                onComplete(task.isSuccessful)
+            }
     }
 }
