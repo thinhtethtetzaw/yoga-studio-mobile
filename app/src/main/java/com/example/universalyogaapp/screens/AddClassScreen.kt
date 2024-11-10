@@ -19,6 +19,7 @@ import java.time.format.TextStyle
 import java.util.Locale
 import com.example.universalyogaapp.viewmodels.ClassViewModel
 import com.example.universalyogaapp.components.DatePickerField
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,6 +41,8 @@ fun AddClassScreen(navController: NavController) {
 
     var showError by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
+
+    var selectedCourseId by remember { mutableStateOf(0L) }
 
     // Collect instructors from ViewModel
     val instructors by instructorViewModel.instructors.collectAsState()
@@ -80,6 +83,17 @@ fun AddClassScreen(navController: NavController) {
             }
         ) {
             DatePicker(state = datePickerState)
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        courseViewModel.loadCourses()
+    }
+
+    LaunchedEffect(coursesWithCount) {
+        println("Courses loaded: ${coursesWithCount.size}")
+        coursesWithCount.forEach { 
+            println("Course: ${it.course.courseName}")
         }
     }
 
@@ -168,8 +182,15 @@ fun AddClassScreen(navController: NavController) {
                             },
                             onClick = {
                                 courseName = courseWithCount.course.courseName
+                                selectedCourseId = courseWithCount.course.id.toLong()
                                 courseExpanded = false
                             }
+                        )
+                    }
+                    if (coursesWithCount.isEmpty()) {
+                        DropdownMenuItem(
+                            text = { Text("No courses available") },
+                            onClick = { }
                         )
                     }
                 }
@@ -225,6 +246,7 @@ fun AddClassScreen(navController: NavController) {
                                 classViewModel.addClass(
                                     name = className.trim(),
                                     instructorName = instructorName.trim(),
+                                    courseId = selectedCourseId,
                                     courseName = courseName.trim(),
                                     date = selectedDate.trim(),
                                     comment = comment.trim()

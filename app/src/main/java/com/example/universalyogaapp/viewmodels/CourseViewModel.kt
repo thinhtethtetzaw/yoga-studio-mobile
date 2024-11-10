@@ -69,13 +69,17 @@ class CourseViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun loadCoursesFromFirebase() {
+        Log.d("CourseViewModel", "Starting to load courses from Firebase")
         dbHelper.getCoursesFromFirebase { courses ->
             viewModelScope.launch {
                 try {
+                    Log.d("CourseViewModel", "Received ${courses.size} courses from Firebase")
+                    courses.forEach { course ->
+                        Log.d("CourseViewModel", "Course: ${course.courseName}")
+                    }
                     _firebaseCourses.emit(courses)
-                    Log.d("CourseViewModel", "Loaded ${courses.size} courses from Firebase")
                 } catch (e: Exception) {
-                    Log.e("CourseViewModel", "Error loading courses from Firebase", e)
+                    Log.e("CourseViewModel", "Error emitting courses", e)
                 }
             }
         }
@@ -99,6 +103,26 @@ class CourseViewModel(application: Application) : AndroidViewModel(application) 
                 loadCoursesFromFirebase()
             } else {
                 Log.e("CourseViewModel", "Failed to delete course from Firebase")
+            }
+        }
+    }
+
+    fun loadCourses() {
+        viewModelScope.launch {
+            try {
+                // Get courses from Firebase
+                dbHelper.getCoursesFromFirebase { courses ->
+                    viewModelScope.launch {
+                        // Convert courses to CourseWithClassCount
+                        val coursesWithCount = courses.map { course ->
+                            val classCount = dbHelper.getClassCountForCourse(course.courseName)
+                            CourseWithClassCount(course, classCount)
+                        }
+                        _coursesWithCount.emit(coursesWithCount)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("CourseViewModel", "Error loading courses: ${e.message}")
             }
         }
     }

@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import android.util.Log
 
 class ClassViewModel(application: Application) : AndroidViewModel(application) {
     private val dbHelper = DatabaseHelper(application)
@@ -27,13 +28,23 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
     fun loadClasses() {
         viewModelScope.launch {
             try {
-                val classesList = withContext(Dispatchers.IO) {
-                    dbHelper.getAllClasses()
+                Log.d("ClassViewModel", "Starting to load classes")
+                dbHelper.getClassesFromFirebase { classesList ->
+                    viewModelScope.launch {
+                        try {
+                            Log.d("ClassViewModel", "Received ${classesList.size} classes")
+                            classesList.forEach { yogaClass ->
+                                Log.d("ClassViewModel", "Class: ${yogaClass.name}")
+                            }
+                            _classes.emit(classesList)
+                        } catch (e: Exception) {
+                            Log.e("ClassViewModel", "Error emitting classes", e)
+                            e.printStackTrace()
+                        }
+                    }
                 }
-                _classes.emit(classesList)
-                println("Loaded ${classesList.size} classes")
             } catch (e: Exception) {
-                println("Error loading classes: ${e.message}")
+                Log.e("ClassViewModel", "Error loading classes", e)
                 e.printStackTrace()
             }
         }
@@ -42,24 +53,36 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
     fun addClass(
         name: String,
         instructorName: String,
+        courseId: Long,
         courseName: String,
         date: String,
         comment: String = ""
     ) {
         viewModelScope.launch {
             try {
-                println("Adding class: $name, $instructorName, $courseName, $date, $comment")
-                withContext(Dispatchers.IO) {
-                    val id = dbHelper.addClass(name, instructorName, courseName, date, comment)
-                    println("Class added with id: $id")
-                    if (id != -1L) {
-                        loadClasses()
-                    } else {
-                        println("Failed to add class")
+                Log.d("ClassViewModel", "Adding class: $name, $instructorName, $courseName")
+                val yogaClass = YogaClass(
+                    id = System.currentTimeMillis().toInt(),
+                    name = name,
+                    instructorName = instructorName,
+                    courseId = courseId,
+                    courseName = courseName,
+                    date = date,
+                    comment = comment
+                )
+                
+                dbHelper.addClassToFirebase(yogaClass) { success ->
+                    viewModelScope.launch {
+                        if (success) {
+                            Log.d("ClassViewModel", "Class added successfully")
+                            loadClasses()
+                        } else {
+                            Log.e("ClassViewModel", "Failed to add class")
+                        }
                     }
                 }
             } catch (e: Exception) {
-                println("Error adding class: ${e.message}")
+                Log.e("ClassViewModel", "Error adding class", e)
                 e.printStackTrace()
             }
         }
@@ -68,12 +91,18 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
     fun deleteClass(id: Int) {
         viewModelScope.launch {
             try {
-                withContext(Dispatchers.IO) {
-                    dbHelper.deleteClass(id)
+                dbHelper.deleteClassFromFirebase(id.toString()) { success ->
+                    viewModelScope.launch {
+                        if (success) {
+                            println("Class deleted from Firebase successfully")
+                            loadClasses()
+                        } else {
+                            println("Failed to delete class from Firebase")
+                        }
+                    }
                 }
-                loadClasses() // Reload classes after deletion
             } catch (e: Exception) {
-                println("Error deleting class: ${e.message}")
+                println("Error deleting class from Firebase: ${e.message}")
                 e.printStackTrace()
             }
         }
@@ -83,18 +112,35 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
         id: Int,
         name: String,
         instructorName: String,
+        courseId: Long,
         courseName: String,
         date: String,
         comment: String
     ) {
         viewModelScope.launch {
             try {
-                withContext(Dispatchers.IO) {
-                    dbHelper.updateClass(id, name, instructorName, courseName, date, comment)
+                val updatedClass = YogaClass(
+                    id = id,
+                    name = name,
+                    instructorName = instructorName,
+                    courseId = courseId,
+                    courseName = courseName,
+                    date = date,
+                    comment = comment
+                )
+                
+                dbHelper.updateClassInFirebase(id.toString(), updatedClass) { success ->
+                    viewModelScope.launch {
+                        if (success) {
+                            println("Class updated in Firebase successfully")
+                            loadClasses()
+                        } else {
+                            println("Failed to update class in Firebase")
+                        }
+                    }
                 }
-                loadClasses() // Reload classes after update
             } catch (e: Exception) {
-                println("Error updating class: ${e.message}")
+                println("Error updating class in Firebase: ${e.message}")
                 e.printStackTrace()
             }
         }

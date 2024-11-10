@@ -312,39 +312,27 @@ private fun ClassCard(
         var editInstructorName by remember { mutableStateOf(yogaClass.instructorName) }
         var editCourseName by remember { mutableStateOf(yogaClass.courseName) }
         var editDate by remember { mutableStateOf(yogaClass.date) }
-        var editComment by remember { mutableStateOf(yogaClass.comment ?: "") }
-        var expanded by remember { mutableStateOf(false) }
+        var editComment by remember { mutableStateOf(yogaClass.comment) }
+        var instructorExpanded by remember { mutableStateOf(false) }
         var courseExpanded by remember { mutableStateOf(false) }
+        var selectedCourseId by remember { mutableStateOf(yogaClass.courseId) }
+
+        // Collect data from ViewModels
+        val instructors by classViewModel.instructors.collectAsState()
         val coursesWithCount by courseViewModel.coursesWithCount.collectAsState()
 
-        
-        val context = LocalContext.current
-        
-        // Parse the initial date
-        val initialDate = try {
-            LocalDate.parse(yogaClass.date)
-        } catch (e: Exception) {
-            LocalDate.now()
-        }
-        
-        // Create date picker
-        val datePickerDialog = DatePickerDialog(
-            context,
-            { _, year, month, dayOfMonth ->
-                val selectedDate = LocalDate.of(year, month + 1, dayOfMonth)
-                editDate = selectedDate.format(DateTimeFormatter.ISO_DATE)
-            },
-            initialDate.year,
-            initialDate.monthValue - 1,
-            initialDate.dayOfMonth
-        )
-
-        // Collect instructors
-        val instructors by classViewModel.instructors.collectAsState()
-        
-        // Load instructors when dialog opens
+        // Load data when dialog opens
         LaunchedEffect(Unit) {
             classViewModel.loadInstructors()
+            courseViewModel.loadCourses()
+        }
+
+        // Debug logging
+        LaunchedEffect(coursesWithCount) {
+            println("Courses loaded in edit dialog: ${coursesWithCount.size}")
+            coursesWithCount.forEach { 
+                println("Course in edit dialog: ${it.course.courseName}")
+            }
         }
 
         AlertDialog(
@@ -369,41 +357,39 @@ private fun ClassCard(
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    // Replace the instructor TextField with ExposedDropdownMenuBox
+                    // Instructor Dropdown
                     ExposedDropdownMenuBox(
-                        expanded = expanded,
-                        onExpandedChange = { expanded = it },
+                        expanded = instructorExpanded,
+                        onExpandedChange = { instructorExpanded = it },
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         OutlinedTextField(
                             value = editInstructorName,
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text("Instructor Name") },
-                            trailingIcon = {
-                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-                            },
+                            label = { Text("Select Instructor") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = instructorExpanded) },
                             modifier = Modifier
-                                .fillMaxWidth()
                                 .menuAnchor()
+                                .fillMaxWidth()
                         )
-
                         ExposedDropdownMenu(
-                            expanded = expanded,
-                            onDismissRequest = { expanded = false }
+                            expanded = instructorExpanded,
+                            onDismissRequest = { instructorExpanded = false }
                         ) {
                             instructors.forEach { instructor ->
                                 DropdownMenuItem(
                                     text = { Text(instructor) },
                                     onClick = {
                                         editInstructorName = instructor
-                                        expanded = false
+                                        instructorExpanded = false
                                     }
                                 )
                             }
                         }
                     }
 
+                    // Course Dropdown
                     ExposedDropdownMenuBox(
                         expanded = courseExpanded,
                         onExpandedChange = { courseExpanded = it },
@@ -411,7 +397,7 @@ private fun ClassCard(
                     ) {
                         OutlinedTextField(
                             value = editCourseName,
-                            onValueChange = { editComment = it },
+                            onValueChange = {},
                             readOnly = true,
                             label = { Text("Select Course") },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = courseExpanded) },
@@ -425,7 +411,7 @@ private fun ClassCard(
                         ) {
                             coursesWithCount.forEach { courseWithCount ->
                                 DropdownMenuItem(
-                                    text = {
+                                    text = { 
                                         Text(
                                             text = courseWithCount.course.courseName,
                                             style = MaterialTheme.typography.bodyLarge
@@ -433,6 +419,7 @@ private fun ClassCard(
                                     },
                                     onClick = {
                                         editCourseName = courseWithCount.course.courseName
+                                        selectedCourseId = courseWithCount.course.id.toLong()
                                         courseExpanded = false
                                     }
                                 )
@@ -479,9 +466,10 @@ private fun ClassCard(
                                     id = yogaClass.id,
                                     name = editName,
                                     instructorName = editInstructorName,
+                                    courseId = selectedCourseId,
                                     courseName = editCourseName,
                                     date = editDate,
-                                    comment = editComment ?: ""
+                                    comment = editComment
                                 )
                                 showEditDialog = false
                             },

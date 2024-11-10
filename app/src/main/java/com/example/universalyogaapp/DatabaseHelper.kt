@@ -55,6 +55,7 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
     private val coursesRef: DatabaseReference = firebaseDatabase.getReference("courses")
     private val db = FirebaseFirestore.getInstance()
     private val coursesCollection = db.collection("courses")
+    private val classesRef: DatabaseReference = firebaseDatabase.getReference("classes")
 
     override fun onCreate(db: SQLiteDatabase) {
         val createTable = """
@@ -475,9 +476,12 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
                     val courses = mutableListOf<Course>()
                     for (courseSnapshot in snapshot.children) {
                         val course = courseSnapshot.getValue(Course::class.java)
-                        Log.d("DatabaseHelper", "Retrieved course: $course")
-                        course?.let { courses.add(it) }
+                        course?.let { 
+                            courses.add(it)
+                            Log.d("DatabaseHelper", "Loaded course: ${it.courseName}")
+                        }
                     }
+                    Log.d("DatabaseHelper", "Total courses loaded: ${courses.size}")
                     onDataReceived(courses)
                 } catch (e: Exception) {
                     Log.e("DatabaseHelper", "Error parsing courses from Firebase", e)
@@ -559,6 +563,162 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
 
                 override fun onCancelled(error: DatabaseError) {
                     Log.e("DatabaseHelper", "Error finding course: ${error.message}")
+                    callback(false)
+                }
+            })
+    }
+
+    fun addClassToFirebase(yogaClass: YogaClass, onComplete: (Boolean) -> Unit) {
+        try {
+            val classId = classesRef.push().key
+            if (classId == null) {
+                Log.e("DatabaseHelper", "Failed to generate classId")
+                onComplete(false)
+                return
+            }
+
+            val classMap = mapOf(
+                "id" to yogaClass.id,
+                "name" to yogaClass.name,
+                "instructorName" to yogaClass.instructorName,
+                "courseId" to yogaClass.courseId,
+                "courseName" to yogaClass.courseName,
+                "date" to yogaClass.date,
+                "comment" to yogaClass.comment
+            )
+
+            classesRef.child(classId).setValue(classMap)
+                .addOnSuccessListener {
+                    Log.d("DatabaseHelper", "Successfully added class to Firebase")
+                    onComplete(true)
+                }
+                .addOnFailureListener { e ->
+                    Log.e("DatabaseHelper", "Error adding class to Firebase", e)
+                    onComplete(false)
+                }
+        } catch (e: Exception) {
+            Log.e("DatabaseHelper", "Exception while adding class to Firebase", e)
+            onComplete(false)
+        }
+    }
+
+    fun getClassesFromFirebase(onDataReceived: (List<YogaClass>) -> Unit) {
+        Log.d("DatabaseHelper", "Starting to fetch classes from Firebase")
+        classesRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                try {
+                    val classes = mutableListOf<YogaClass>()
+                    Log.d("DatabaseHelper", "Number of class entries: ${snapshot.childrenCount}")
+                    
+                    for (classSnapshot in snapshot.children) {
+                        try {
+                            // Log the raw data
+                            Log.d("DatabaseHelper", "Raw class data: ${classSnapshot.value}")
+                            
+                            // Extract values manually
+                            val id = classSnapshot.child("id").getValue(Int::class.java) ?: 0
+                            val name = classSnapshot.child("name").getValue(String::class.java) ?: ""
+                            val instructorName = classSnapshot.child("instructorName").getValue(String::class.java) ?: ""
+                            val courseId = classSnapshot.child("courseId").getValue(Long::class.java) ?: 0
+                            val courseName = classSnapshot.child("courseName").getValue(String::class.java) ?: ""
+                            val date = classSnapshot.child("date").getValue(String::class.java) ?: ""
+                            val comment = classSnapshot.child("comment").getValue(String::class.java) ?: ""
+
+                            val yogaClass = YogaClass(
+                                id = id,
+                                name = name,
+                                instructorName = instructorName,
+                                courseId = courseId,
+                                courseName = courseName,
+                                date = date,
+                                comment = comment
+                            )
+                            
+                            classes.add(yogaClass)
+                            Log.d("DatabaseHelper", "Successfully parsed class: ${yogaClass.name}")
+                        } catch (e: Exception) {
+                            Log.e("DatabaseHelper", "Error parsing individual class", e)
+                            e.printStackTrace()
+                        }
+                    }
+                    
+                    Log.d("DatabaseHelper", "Total classes parsed: ${classes.size}")
+                    onDataReceived(classes)
+                } catch (e: Exception) {
+                    Log.e("DatabaseHelper", "Error parsing classes from Firebase", e)
+                    e.printStackTrace()
+                    onDataReceived(emptyList())
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("DatabaseHelper", "Error reading classes: ${error.message}")
+                onDataReceived(emptyList())
+            }
+        })
+    }
+
+    fun updateClassInFirebase(classId: String, yogaClass: YogaClass, callback: (Boolean) -> Unit) {
+        classesRef.orderByChild("id").equalTo(classId.toDouble())
+            .addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    if (snapshot.exists()) {
+                        val firebaseKey = snapshot.children.first().key
+                        if (firebaseKey != null) {
+                            classesRef.child(firebaseKey).setValue(yogaClass)
+                                .addOnSuccessListener {
+                                    Log.d("DatabaseHelper", "Successfully updated class in Firebase")
+                                    callback(true)
+                                }
+                                .addOnFailureListener { e ->
+                                    Log.e("DatabaseHelper", "Error updating class", e)
+                                    callback(false)
+                                }
+                        } else {
+                            Log.e("DatabaseHelper", "Firebase key is null")
+                            callback(false)
+                        }
+                    } else {
+                        Log.e("DatabaseHelper", "Class not found in Firebase")
+                        callback(false)
+                    }
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    Log.e("DatabaseHelper", "Error finding class: ${error.message}")
+                    callback(false)
+                }
+            })
+    }
+
+    fun deleteClassFromFirebase(classId: String, callback: (Boolean) -> Unit) {
+        classesRef.orderByChild("id").equalTo(classId.toDouble())
+            .addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    if (snapshot.exists()) {
+                        val firebaseKey = snapshot.children.first().key
+                        if (firebaseKey != null) {
+                            classesRef.child(firebaseKey).removeValue()
+                                .addOnSuccessListener {
+                                    Log.d("DatabaseHelper", "Successfully deleted class from Firebase")
+                                    callback(true)
+                                }
+                                .addOnFailureListener { e ->
+                                    Log.e("DatabaseHelper", "Error deleting class", e)
+                                    callback(false)
+                                }
+                        } else {
+                            Log.e("DatabaseHelper", "Firebase key is null")
+                            callback(false)
+                        }
+                    } else {
+                        Log.e("DatabaseHelper", "Class not found in Firebase")
+                        callback(false)
+                    }
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    Log.e("DatabaseHelper", "Error finding class: ${error.message}")
                     callback(false)
                 }
             })

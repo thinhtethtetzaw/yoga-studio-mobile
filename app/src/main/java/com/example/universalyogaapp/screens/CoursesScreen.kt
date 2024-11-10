@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -34,6 +35,17 @@ fun CoursesScreen(
 ) {
     val courses by courseViewModel.firebaseCourses.collectAsState()
 
+    LaunchedEffect(Unit) {
+        courseViewModel.loadCoursesFromFirebase()
+    }
+
+    LaunchedEffect(courses) {
+        println("Courses in screen: ${courses.size}")
+        courses.forEach { course ->
+            println("Course in screen: ${course.courseName}")
+        }
+    }
+
     CommonScaffold(
         navController = navController,
         title = "Course",
@@ -44,45 +56,44 @@ fun CoursesScreen(
                 modifier = Modifier.padding(end = 16.dp),
                 shape = RoundedCornerShape(4.dp)
             ) {
-                Text("+ Add", color = MaterialTheme.colorScheme.secondary, style = MaterialTheme.typography.bodyLarge)
+                Text("+ Add", color = MaterialTheme.colorScheme.secondary)
             }
-        },
-        content = { padding ->
-            Column(
-                modifier = Modifier.padding(top = padding.calculateTopPadding())
-            ) {
-                if (courses.isEmpty()) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "No courses available.\nClick + to add a new course.",
-                            style = MaterialTheme.typography.bodyLarge
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier.padding(top = padding.calculateTopPadding())
+        ) {
+            if (courses.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No courses available.\nClick + to add a new course.",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(
+                        start = 16.dp,
+                        end = 16.dp,
+                        top = 8.dp,
+                        bottom = padding.calculateBottomPadding() + 16.dp
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    items(courses) { course ->
+                        CourseCard(
+                            courseWithCount = CourseWithClassCount(course = course, classCount = 0),
+                            onClick = { navController.navigate("course_detail/${course.id}") }
                         )
-                    }
-                } else {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(
-                            start = 16.dp,
-                            end = 16.dp,
-                            top = 8.dp,
-                            bottom = padding.calculateBottomPadding() + 16.dp
-                        ),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        items(courses) { course ->
-                            CourseCard(
-                                courseWithCount = CourseWithClassCount(course = course, classCount = 0),
-                                onClick = { navController.navigate("course_detail/${course.id}") }
-                            )
-                        }
                     }
                 }
             }
         }
-    )
+    }
 }
 
 @Composable

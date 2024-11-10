@@ -3,9 +3,11 @@ package com.example.universalyogaapp.data
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.google.firebase.database.IgnoreExtraProperties
+import androidx.annotation.Keep
 
 @IgnoreExtraProperties
 @Entity(tableName = "courses")
+@Keep
 data class Course(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
