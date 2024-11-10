@@ -147,7 +147,7 @@ fun CreateCourseFormContent(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Add New Yoga Course") },
+                title = { Text(if (isEditing) "Edit $courseName" else "Add New Yoga Course") },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
                         Icon(Icons.Default.ArrowBackIosNew, "Back")
@@ -164,12 +164,13 @@ fun CreateCourseFormContent(
                 .padding(horizontal = 16.dp)
         ) {
             Spacer(modifier = Modifier.height(8.dp))
-            
-            Text(
-                "Create a new course for yoga course",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
+            if (!isEditing) {
+                Text(
+                    text = "Create a new course for yoga course",
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+            }
 
             // Course Name
             OutlinedTextField(
