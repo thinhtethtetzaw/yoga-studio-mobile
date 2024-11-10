@@ -55,7 +55,7 @@ fun CourseDetailScreen(
                 ) {
                     course?.let { course ->
                         Text(
-                            text = "${course.courseName} Course",
+                            text = "${course.courseName}",
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold,
                             color = Color.DarkGray
@@ -97,7 +97,7 @@ fun CourseDetailScreen(
                         Text(
                             text = "£${course.pricePerClass}/class",
                             style = MaterialTheme.typography.bodyLarge,
-                            color = Color(0xFFE57373),
+                            color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.padding(vertical = 8.dp),
                             fontWeight = FontWeight.Bold
                         )

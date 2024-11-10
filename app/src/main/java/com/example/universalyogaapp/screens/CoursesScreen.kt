@@ -169,7 +169,7 @@ fun CourseCard(courseWithCount: CourseWithClassCount, onClick: () -> Unit) {
             Text(
                 text = "£${courseWithCount.course.pricePerClass}",
                 style = MaterialTheme.typography.titleMedium,
-                color = Color(0xFFE57373),
+                color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Bold
             )
         }
