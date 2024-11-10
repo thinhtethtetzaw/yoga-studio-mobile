@@ -11,6 +11,7 @@ import com.example.universalyogaapp.DatabaseHelper
 import com.example.universalyogaapp.data.CourseWithClassCount
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import com.google.firebase.database.FirebaseDatabase
 
 class CourseViewModel(application: Application) : AndroidViewModel(application) {
     private val repository: CourseRepository
@@ -19,6 +20,8 @@ class CourseViewModel(application: Application) : AndroidViewModel(application) 
     val coursesWithCount: StateFlow<List<CourseWithClassCount>> = _coursesWithCount
     private val _firebaseCourses = MutableStateFlow<List<Course>>(emptyList())
     val firebaseCourses: StateFlow<List<Course>> = _firebaseCourses
+    private val _selectedCourse = MutableStateFlow<Course?>(null)
+    val selectedCourse: StateFlow<Course?> = _selectedCourse
     
     init {
         val courseDao = YogaDatabase.getDatabase(application).courseDao()
@@ -125,6 +128,33 @@ class CourseViewModel(application: Application) : AndroidViewModel(application) 
                 Log.e("CourseViewModel", "Error loading courses: ${e.message}")
             }
         }
+    }
+
+    fun fetchCourseByIdFromFirebase(courseId: Long) {
+        val dbRef = FirebaseDatabase.getInstance().getReference("courses")
+        dbRef.orderByChild("id").equalTo(courseId.toDouble())
+            .get()
+            .addOnSuccessListener { snapshot ->
+                if (snapshot.exists()) {
+                    // Since we're querying by ID, there should only be one result
+                    snapshot.children.firstOrNull()?.let { courseSnapshot ->
+                        val course = courseSnapshot.getValue(Course::class.java)
+                        viewModelScope.launch {
+                            _selectedCourse.emit(course)
+                        }
+                    }
+                } else {
+                    viewModelScope.launch {
+                        _selectedCourse.emit(null)
+                    }
+                }
+            }
+            .addOnFailureListener {
+                viewModelScope.launch {
+                    _selectedCourse.emit(null)
+                }
+                Log.e("CourseViewModel", "Error getting course data", it)
+            }
     }
 } 
 
