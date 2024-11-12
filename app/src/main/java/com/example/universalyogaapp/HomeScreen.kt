@@ -59,7 +59,7 @@ fun HomeScreen(navController: NavController) {
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            item { Header() }
+            item { Header(navController) }
             item { Spacer(modifier = Modifier.height(16.dp)) }
             item { ImageSlider() }
             item { Spacer(modifier = Modifier.height(16.dp)) }
@@ -147,24 +147,38 @@ fun ImageSlider() {
 }
 
 @Composable
-fun Header() {
+fun Header(navController: NavController) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Image(
-            painter = painterResource(id = R.drawable.logo),
-            contentDescription = "Yoga Illustration",
-            modifier = Modifier.size(24.dp)
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = "Yoga Studio Admin",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(modifier = Modifier.width(16.dp))
-
+        Row(
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.logo),
+                contentDescription = "Yoga Illustration",
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "Yoga Studio Admin",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        
+        IconButton(
+            onClick = { navController.navigate(Routes.Profile.route) }
+        ) {
+            Icon(
+                imageVector = Icons.Default.Person,
+                contentDescription = "Profile",
+                tint = Color.DarkGray,
+                modifier = Modifier.size(32.dp)
+            )
+        }
     }
 }
 
