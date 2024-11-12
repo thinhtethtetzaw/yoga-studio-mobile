@@ -40,6 +40,8 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.foundation.clickable
 import com.example.universalyogaapp.components.CommonScaffold
 import androidx.compose.material3.MaterialTheme
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.universalyogaapp.viewmodels.HomeViewModel
 
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPagerApi::class)
@@ -260,6 +262,9 @@ fun StatItem(
 
 @Composable
 fun Statistics(navController: NavController) {
+    val viewModel: HomeViewModel = viewModel()
+    val statistics by viewModel.statistics.collectAsState()
+
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -270,7 +275,7 @@ fun Statistics(navController: NavController) {
         ) {
             StatItem(
                 title = "Bookings",
-                value = "150",
+                value = statistics.bookingsCount.toString(),
                 painter = painterResource(id = R.drawable.ic_booking),
                 modifier = Modifier.weight(1f),
                 statType = StatType.Bookings,
@@ -278,7 +283,7 @@ fun Statistics(navController: NavController) {
             )
             StatItem(
                 title = "Courses",
-                value = "10",
+                value = statistics.coursesCount.toString(),
                 painter = painterResource(id = R.drawable.ic_course),
                 modifier = Modifier.weight(1f),
                 statType = StatType.Courses,
@@ -291,7 +296,7 @@ fun Statistics(navController: NavController) {
         ) {
             StatItem(
                 title = "Instructors",
-                value = "12",
+                value = statistics.instructorsCount.toString(),
                 icon = Icons.Default.Person,
                 modifier = Modifier.weight(1f),
                 statType = StatType.Instructors,
@@ -299,13 +304,12 @@ fun Statistics(navController: NavController) {
             )
             StatItem(
                 title = "Classes",
-                value = "45",
+                value = statistics.classesCount.toString(),
                 icon = Icons.Default.DateRange,
                 modifier = Modifier.weight(1f),
                 statType = StatType.Classes,
                 navController = navController
             )
-
         }
     }
 }
