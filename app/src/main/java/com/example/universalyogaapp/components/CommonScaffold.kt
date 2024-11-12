@@ -62,6 +62,22 @@ fun CommonScaffold(
                     )
                 )
                 NavigationBarItem(
+                    icon = {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_booking),
+                            contentDescription = "Bookings"
+                        )
+                    },
+                    label = { Text("Bookings") },
+                    selected = navController.currentDestination?.route == Routes.Bookings.route,
+                    onClick = { navController.navigate(Routes.Bookings.route) },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = MaterialTheme.colorScheme.primary,
+                        selectedTextColor = MaterialTheme.colorScheme.primary,
+                        indicatorColor = Color.White
+                    )
+                )
+                NavigationBarItem(
                     icon = { 
                         Icon(
                             painter = painterResource(id = R.drawable.ic_course),
@@ -92,17 +108,6 @@ fun CommonScaffold(
                             e.printStackTrace()
                         }
                     },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = MaterialTheme.colorScheme.primary,
-                        selectedTextColor = MaterialTheme.colorScheme.primary,
-                        indicatorColor = Color.White
-                    )
-                )
-                NavigationBarItem(
-                    icon = { Icon(Icons.Default.Person, contentDescription = "Instructors") },
-                    label = { Text("Profile") },
-                    selected = navController.currentDestination?.route == Routes.Profile.route,
-                    onClick = { navController.navigate(Routes.Profile.route) },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = MaterialTheme.colorScheme.primary,
                         selectedTextColor = MaterialTheme.colorScheme.primary,

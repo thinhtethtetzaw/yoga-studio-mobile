@@ -186,7 +186,7 @@ sealed class StatType {
     object Courses : StatType()
     object Classes : StatType()
     object Instructors : StatType()
-    object Participants : StatType()
+    object Bookings : StatType()
 }
 
 @Composable
@@ -207,7 +207,7 @@ fun StatItem(
                     StatType.Courses -> navController.navigate(Routes.Courses.route)
                     StatType.Classes -> navController.navigate(Routes.Classes.route)
                     StatType.Instructors -> navController.navigate(Routes.Instructors.route)
-                    StatType.Participants -> navController.navigate(Routes.Participants.route)
+                    StatType.Bookings -> navController.navigate(Routes.Bookings.route)
                 }
             },
         colors = CardDefaults.cardColors(
@@ -269,19 +269,19 @@ fun Statistics(navController: NavController) {
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             StatItem(
+                title = "Bookings",
+                value = "150",
+                painter = painterResource(id = R.drawable.ic_booking),
+                modifier = Modifier.weight(1f),
+                statType = StatType.Bookings,
+                navController = navController
+            )
+            StatItem(
                 title = "Courses",
                 value = "10",
                 painter = painterResource(id = R.drawable.ic_course),
                 modifier = Modifier.weight(1f),
                 statType = StatType.Courses,
-                navController = navController
-            )
-            StatItem(
-                title = "Classes",
-                value = "45",
-                icon = Icons.Default.DateRange,
-                modifier = Modifier.weight(1f),
-                statType = StatType.Classes,
                 navController = navController
             )
         }
@@ -298,13 +298,14 @@ fun Statistics(navController: NavController) {
                 navController = navController
             )
             StatItem(
-                title = "Participants",
-                value = "150",
-                painter = painterResource(id = R.drawable.ic_participants),
+                title = "Classes",
+                value = "45",
+                icon = Icons.Default.DateRange,
                 modifier = Modifier.weight(1f),
-                statType = StatType.Participants,
+                statType = StatType.Classes,
                 navController = navController
             )
+
         }
     }
 }

@@ -35,6 +35,7 @@ import androidx.navigation.navArgument
 import com.example.universalyogaapp.screens.EditCourseScreen
 import com.example.universalyogaapp.screens.AddClassScreen
 import com.google.firebase.FirebaseApp
+import com.example.universalyogaapp.screens.BookingsScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -105,6 +106,9 @@ class MainActivity : ComponentActivity() {
                         }
                         composable(Routes.AddClass.route) {
                             AddClassScreen(navController = navController)
+                        }
+                        composable(Routes.Bookings.route) {
+                            BookingsScreen(navController)
                         }
                     }
                 )

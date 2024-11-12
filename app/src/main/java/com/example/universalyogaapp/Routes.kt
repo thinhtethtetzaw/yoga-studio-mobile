@@ -13,4 +13,5 @@ sealed class Routes(val route: String) {
     object CreateCourse : Routes("create_course")
     object CreateInstructor : Routes("create_instructor")
     object AddClass : Routes("add_class")
+    object Bookings : Routes("bookings")
 }
