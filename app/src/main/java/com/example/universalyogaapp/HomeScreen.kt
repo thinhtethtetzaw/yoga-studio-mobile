@@ -42,6 +42,13 @@ import com.example.universalyogaapp.components.CommonScaffold
 import androidx.compose.material3.MaterialTheme
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.universalyogaapp.viewmodels.HomeViewModel
+import com.example.universalyogaapp.viewmodels.CourseViewModel
+import com.example.universalyogaapp.viewmodels.ClassViewModel
+import com.example.universalyogaapp.data.CourseWithClassCount
+import androidx.compose.material.icons.filled.Schedule
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import com.example.universalyogaapp.data.YogaClass
 
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPagerApi::class)
@@ -68,7 +75,7 @@ fun HomeScreen(navController: NavController) {
             item { Statistics(navController) }
             item { Spacer(modifier = Modifier.height(16.dp)) }
             item { SectionTitle("Courses", navController) }
-            item { CoursesList() }
+            item { CoursesList(navController) }
             item { Spacer(modifier = Modifier.height(16.dp)) }
             item { SectionTitle("Classes", navController) }
             item { ClassesList() }
@@ -344,108 +351,232 @@ fun SectionTitle(
 }
 
 @Composable
-fun CoursesList() {
-    val courses = listOf(
-        Course("Morning Yoga", "Duration: 60 mins, Level: Beginner", R.drawable.ic_course),
-        Course("Evening Relaxation", "Duration: 45 mins, Level: Intermediate", R.drawable.ic_course)
-    )
-    courses.forEach { course ->
-        CourseItem(course)
-        Spacer(modifier = Modifier.height(8.dp))
+fun CourseCard(courseWithCount: CourseWithClassCount, onClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(6.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Surface(
+                modifier = Modifier.size(48.dp),
+                shape = RoundedCornerShape(6.dp),
+                color = MaterialTheme.colorScheme.background,
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_course),
+                    contentDescription = "Course Icon",
+                    modifier = Modifier
+                        .padding(10.dp)
+                        .size(28.dp),
+                    tint = MaterialTheme.colorScheme.secondary
+                )
+            }
+
+            // Content
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = courseWithCount.course.daysOfWeek,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Schedule,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "${courseWithCount.course.timeOfCourse} | ${courseWithCount.course.duration / 60} Hours",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                }
+
+                Text(
+                    text = courseWithCount.course.courseName,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(vertical = 2.dp)
+                )
+
+                Text(
+                    text = "capacity: ${courseWithCount.course.capacity}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                )
+                Text(
+                    text = "${courseWithCount.classCount} ${if (courseWithCount.classCount > 1) "Classes" else "Class"}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            // Price
+            Text(
+                text = "£${courseWithCount.course.pricePerClass}",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold
+            )
+        }
     }
 }
 
 @Composable
-fun CourseItem(course: Course) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 1.dp
+fun CoursesList(navController: NavController) {
+    val courseViewModel: CourseViewModel = viewModel()
+    val classViewModel: ClassViewModel = viewModel()
+    val courses by courseViewModel.firebaseCourses.collectAsState()
+    val classes by classViewModel.classes.collectAsState()
+
+    LaunchedEffect(Unit) {
+        courseViewModel.loadCoursesFromFirebase()
+    }
+
+    if (courses.isEmpty()) {
+        Text(
+            text = "No courses available",
+            style = MaterialTheme.typography.bodyLarge,
+            color = Color.Gray,
+            modifier = Modifier.padding(vertical = 8.dp)
         )
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = MaterialTheme.colorScheme.background,
-                modifier = Modifier.size(40.dp)
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        painter = painterResource(id = course.iconResId),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.width(16.dp))
-            Column {
-                Text(text = course.name, style = MaterialTheme.typography.titleMedium)
-                Text(text = course.details, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-            }
+    } else {
+        // Show last 2 courses instead of first 2
+        courses.takeLast(2).forEach { course ->
+            val classCount = classes.count { it.courseName == course.courseName }
+            CourseCard(
+                courseWithCount = CourseWithClassCount(
+                    course = course,
+                    classCount = classCount
+                ),
+                onClick = { navController.navigate("course_detail/${course.id}") }
+            )
+            Spacer(modifier = Modifier.height(8.dp))
         }
     }
 }
 
 @Composable
 fun ClassesList() {
-    val classes = listOf(
-        YogaClass("Sunrise Flow", "Date: 2023-10-01, Time: 6:00 AM, Instructor: Emma"),
-        YogaClass("Gentle Stretch", "Date: 2023-10-02, Time: 7:00 AM, Instructor: Lia")
-    )
-    classes.forEach { yogaClass ->
-        ClassItem(yogaClass)
-        Spacer(modifier = Modifier.height(8.dp))
+    val classViewModel: ClassViewModel = viewModel()
+    val classes by classViewModel.classes.collectAsState()
+
+    LaunchedEffect(Unit) {
+        classViewModel.loadClasses()
+    }
+
+    if (classes.isEmpty()) {
+        Text(
+            text = "No classes available",
+            style = MaterialTheme.typography.bodyLarge,
+            color = Color.Gray,
+            modifier = Modifier.padding(vertical = 8.dp)
+        )
+    } else {
+        // Show last 2 classes
+        classes.takeLast(2).forEach { yogaClass ->
+            ClassCard(yogaClass = yogaClass)
+            Spacer(modifier = Modifier.height(8.dp))
+        }
     }
 }
 
 @Composable
-fun ClassItem(yogaClass: YogaClass) {
+private fun ClassCard(yogaClass: YogaClass) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 1.dp
-        )
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        shape = RoundedCornerShape(8.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.Top
         ) {
+            // Calendar Icon
             Surface(
+                modifier = Modifier.size(40.dp),
                 shape = RoundedCornerShape(8.dp),
-                color = MaterialTheme.colorScheme.background,  // Light gray background
-                modifier = Modifier.size(40.dp)
+                color = MaterialTheme.colorScheme.background
             ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.DateRange,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier.size(24.dp)
+                Icon(
+                    imageVector = Icons.Default.DateRange,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .padding(8.dp)
+                        .size(24.dp),
+                    tint = MaterialTheme.colorScheme.secondary
+                )
+            }
+            
+            Spacer(modifier = Modifier.width(16.dp))
+            
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Date: ${formatDate(yogaClass.date)}",
+                    color = MaterialTheme.colorScheme.secondary,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+                Text(
+                    text = yogaClass.name,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                
+                Text(
+                    text = yogaClass.courseName,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                )
+
+                Text(
+                    text = "Instructor: ${yogaClass.instructorName}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                
+                if (!yogaClass.comment.isNullOrBlank()) {
+                    Text(
+                        text = "Note: ${yogaClass.comment}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
-            Spacer(modifier = Modifier.width(16.dp))
-            Column {
-                Text(text = yogaClass.name, style = MaterialTheme.typography.titleMedium)
-                Text(text = yogaClass.details, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-            }
         }
+    }
+}
+
+private fun formatDate(dateString: String): String {
+    return try {
+        val date = LocalDate.parse(dateString)
+        date.format(DateTimeFormatter.ofPattern("MMM dd, yyyy"))
+    } catch (e: Exception) {
+        dateString
     }
 }
 
@@ -502,8 +633,6 @@ fun ParticipantItem(participant: Participant) {
     }
 }
 
-data class Course(val name: String, val details: String, val iconResId: Int)
-data class YogaClass(val name: String, val details: String)
 data class Participant(val name: String, val details: String, val imageResId: Int)
 
 data class BottomNavItem(
