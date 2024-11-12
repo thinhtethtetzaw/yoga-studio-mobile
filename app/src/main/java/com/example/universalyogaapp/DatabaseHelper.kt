@@ -14,6 +14,7 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
 import android.util.Log
 import com.google.firebase.firestore.FirebaseFirestore
+import com.example.universalyogaapp.models.Admin
 
 class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
 
@@ -722,5 +723,52 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
                     callback(false)
                 }
             })
+    }
+
+    fun getAllAdmins(): List<Admin> {
+        val admins = mutableListOf<Admin>()
+        val db = this.readableDatabase
+        val cursor = db.query(
+            "users",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+        )
+
+        with(cursor) {
+            while (moveToNext()) {
+                val name = getString(getColumnIndexOrThrow("name"))
+                val email = getString(getColumnIndexOrThrow("email"))
+                val password = getString(getColumnIndexOrThrow("password"))
+                
+                admins.add(Admin(
+                    name = name,
+                    email = email,
+                    password = password,
+                    createdAt = System.currentTimeMillis()
+                ))
+            }
+        }
+        cursor.close()
+        return admins
+    }
+
+    fun updateOrInsertAdmin(admin: Admin) {
+        val db = this.writableDatabase
+        val values = ContentValues().apply {
+            put("name", admin.name)
+            put("email", admin.email)
+            put("password", admin.password)
+        }
+
+        db.insertWithOnConflict(
+            "users",
+            null,
+            values,
+            SQLiteDatabase.CONFLICT_REPLACE
+        )
     }
 }

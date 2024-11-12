@@ -166,7 +166,7 @@ fun ProfileScreen(navController: NavController) {
                         icon = Icons.Default.Group,
                         title = "Create New Admin Account",
                         subtitle = "Create a new admin account",
-                        onClick = { /* Handle new admin account creation */ }
+                        onClick = { navController.navigate(Routes.Register.route) }
                     )
                 }
             }

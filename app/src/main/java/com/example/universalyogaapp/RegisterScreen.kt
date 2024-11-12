@@ -12,11 +12,21 @@ import androidx.compose.ui.unit.dp
 import com.example.universalyogaapp.ui.theme.*
 import android.content.Context
 import android.widget.Toast
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import androidx.compose.material3.MaterialTheme
+import com.google.firebase.database.ktx.database
+import com.google.firebase.ktx.Firebase
+import com.example.universalyogaapp.models.Admin
+import com.example.universalyogaapp.utils.FirebaseUtils
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -30,82 +40,93 @@ fun RegisterScreen(navController: NavController) {
     val context = LocalContext.current
     val dbHelper = remember { DatabaseHelper(context) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 24.dp, vertical = 16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = "Create an Account",
-            color = MaterialTheme.colorScheme.secondary,
-            style = MaterialTheme.typography.headlineSmall,
-            modifier = Modifier.padding(top = 32.dp, bottom = 32.dp)
-        )
-
-        OutlinedTextField(
-            value = name,
-            onValueChange = { name = it },
-            label = { Text("Full Name") },
-            placeholder = { Text("Enter your full name") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text("Email Address") },
-            placeholder = { Text("Enter your email") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text("Password") },
-            placeholder = { Text("Enter your password") },
-            visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        OutlinedTextField(
-            value = confirmPassword,
-            onValueChange = { confirmPassword = it },
-            label = { Text("Confirm Password") },
-            placeholder = { Text("Confirm your password") },
-            visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Button(
-            onClick = {
-                if (validateInputs(name, email, password, confirmPassword)) {
-                    registerUser(context, dbHelper, name, email, password, navController)
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Register") },
+                navigationIcon = {
+                    IconButton(onClick = { navController.navigateUp() }) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBackIosNew,
+                            contentDescription = "Back"
+                        )
+                    }
                 }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary
-            ),
-            shape = MaterialTheme.shapes.small
-        ) {
-            Text("Register")
+            )
         }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(horizontal = 24.dp, vertical = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Create New Admin Account",
+                color = MaterialTheme.colorScheme.secondary,
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.padding(top = 16.dp, bottom = 24.dp)
+            )
 
-        Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text("Full Name") },
+                placeholder = { Text("Enter your full name") },
+                modifier = Modifier.fillMaxWidth()
+            )
 
-        TextButton(onClick = { navController.navigate(Routes.Login.route) }) {
-            Text("Already have an account? Login", color = Color.DarkGray)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = email,
+                onValueChange = { email = it },
+                label = { Text("Email Address") },
+                placeholder = { Text("Enter your email") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                label = { Text("Password") },
+                placeholder = { Text("Enter your password") },
+                visualTransformation = PasswordVisualTransformation(),
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = confirmPassword,
+                onValueChange = { confirmPassword = it },
+                label = { Text("Confirm Password") },
+                placeholder = { Text("Confirm your password") },
+                visualTransformation = PasswordVisualTransformation(),
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(
+                onClick = {
+                    if (validateInputs(name, email, password, confirmPassword)) {
+                        registerUser(context, dbHelper, name, email, password, navController)
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                ),
+                shape = MaterialTheme.shapes.small
+            ) {
+                Text("Create")
+            }
         }
     }
 }
@@ -128,12 +149,51 @@ private fun registerUser(
     password: String,
     navController: NavController
 ) {
+    // Create Admin object
+    val admin = Admin(
+        name = name,
+        email = email,
+        password = password,
+        createdAt = System.currentTimeMillis()
+    )
+
+    // First save to local database
     val result = dbHelper.addUser(name, email, password)
+    
     if (result != -1L) {
-        Toast.makeText(context, "Registration successful", Toast.LENGTH_SHORT).show()
-        navController.navigate(Routes.Login.route) {
-            popUpTo(Routes.Register.route) { inclusive = true }
-        }
+        // If local save is successful, save to Firebase
+        FirebaseUtils.addAdmin(
+            admin = admin,
+            onSuccess = {
+                // Start sync process
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        val localAdmins = dbHelper.getAllAdmins()
+                        FirebaseUtils.syncAdmins(localAdmins)
+                            .onSuccess {
+                                withContext(Dispatchers.Main) {
+                                    Toast.makeText(context, "Admin account created and synced successfully", Toast.LENGTH_SHORT).show()
+                                    navController.navigate(Routes.Profile.route) {
+                                        popUpTo(Routes.Register.route) { inclusive = true }
+                                    }
+                                }
+                            }
+                            .onFailure { e ->
+                                withContext(Dispatchers.Main) {
+                                    Toast.makeText(context, "Sync Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                    } catch (e: Exception) {
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            },
+            onFailure = { e ->
+                Toast.makeText(context, "Firebase Error: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        )
     } else {
         Toast.makeText(context, "Registration failed. Please try again.", Toast.LENGTH_SHORT).show()
     }
