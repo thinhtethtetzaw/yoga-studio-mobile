@@ -44,7 +44,7 @@ fun ProfileScreen(navController: NavController) {
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(350.dp)
+                    .height(250.dp)
             ) {
                 Box(modifier = Modifier.fillMaxSize()) {
                     Column(
@@ -110,58 +110,16 @@ fun ProfileScreen(navController: NavController) {
                 }
             }
 
-            // Edit Profile Button
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .offset(y = (-120).dp),
-                contentAlignment = Alignment.Center  // This centers the Surface horizontally
-            ) {
-                Surface(
-                    modifier = Modifier
-                        .wrapContentWidth(),
-                    shape = RoundedCornerShape(6.dp),
-                    color = Color.White.copy(alpha = 0.15f)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .clickable { /* Handle edit profile */ }
-                            .padding(horizontal = 24.dp, vertical = 12.dp),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "Edit",
-                            tint = Color.White,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            "Edit Profile",
-                            color = Color.White,
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                    }
-                }
-            }
-
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp)
-                    .offset(y = (-100).dp),
+                    .offset(y = (-50).dp),
                 shape = RoundedCornerShape(6.dp),
                 color = Color.White,
                 shadowElevation = 2.dp
             ) {
                 Column(modifier = Modifier.padding(10.dp, 20.dp)) {
-                    MenuListItem(
-                        icon = Icons.Default.Lock,
-                        title = "Change Password",
-                        subtitle = "Change password of the account",
-                        onClick = { /* Handle password change */ }
-                    )
                     MenuListItem(
                         icon = Icons.Default.Group,
                         title = "Create New Admin Account",
@@ -181,7 +139,7 @@ fun ProfileScreen(navController: NavController) {
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp).offset(y = (-120).dp),
+                    .padding(16.dp).offset(y = (-20).dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary
                 ),

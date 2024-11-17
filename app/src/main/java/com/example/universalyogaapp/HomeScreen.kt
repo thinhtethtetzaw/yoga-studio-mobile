@@ -87,8 +87,6 @@ fun HomeScreen(
             item { SectionTitle("Classes", navController) }
             item { ClassesList() }
             item { Spacer(modifier = Modifier.height(16.dp)) }
-            item { SectionTitle("Registered Participants", navController) }
-            item { ParticipantsList() }
         }
     }
 }
@@ -353,7 +351,6 @@ fun SectionTitle(
                 when (title) {
                     "Courses" -> navController.navigate(Routes.Courses.route)
                     "Classes" -> navController.navigate(Routes.Classes.route)
-                    "Registered Participants" -> navController.navigate(Routes.Participants.route)
                 }
             }
         )
@@ -591,58 +588,7 @@ private fun formatDate(dateString: String): String {
     }
 }
 
-@Composable
-fun ParticipantsList() {
-    val participants = listOf(
-        Participant("Olivia Brown", "Registered: 2023-09-25, Contact: ...", R.drawable.ic_participants),
-        Participant("Noah Wilson", "Registered: 2023-09-26, Contact: ...", R.drawable.ic_participants)
-    )
-    participants.forEach { participant ->
-        ParticipantItem(participant)
-        Spacer(modifier = Modifier.height(8.dp))
-    }
-}
 
-@Composable
-fun ParticipantItem(participant: Participant) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 1.dp
-        )
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = MaterialTheme.colorScheme.background,  // Light gray background
-                modifier = Modifier.size(40.dp)
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        painter = painterResource(id = participant.imageResId),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.width(16.dp))
-            Column {
-                Text(text = participant.name, style = MaterialTheme.typography.titleMedium)
-                Text(text = participant.details, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-            }
-        }
-    }
-}
 
 data class Participant(val name: String, val details: String, val imageResId: Int)
 
