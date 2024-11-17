@@ -15,6 +15,8 @@ import com.google.firebase.database.ValueEventListener
 import android.util.Log
 import com.google.firebase.firestore.FirebaseFirestore
 import com.example.universalyogaapp.models.Admin
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
 
@@ -322,45 +324,53 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         val db = this.readableDatabase
         val courses = mutableListOf<Course>()
         
-        val cursor = db.query(
-            TABLE_COURSES,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null
-        )
+        try {
+            val cursor = db.query(
+                TABLE_COURSES,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+            )
 
-        with(cursor) {
-            while (moveToNext()) {
-                val id = getLong(getColumnIndexOrThrow(COLUMN_COURSE_ID))
-                val courseName = getString(getColumnIndexOrThrow(COLUMN_COURSE_NAME))
-                val daysOfWeek = getString(getColumnIndexOrThrow("days_of_week"))
-                val timeOfCourse = getString(getColumnIndexOrThrow("time_of_course"))
-                val capacity = getInt(getColumnIndexOrThrow("capacity"))
-                val duration = getInt(getColumnIndexOrThrow("duration"))
-                val pricePerClass = getDouble(getColumnIndexOrThrow("price_per_class"))
-                val typeOfClass = getString(getColumnIndexOrThrow("type_of_class"))
-                val description = getString(getColumnIndexOrThrow("description"))
-                val difficultyLevel = getString(getColumnIndexOrThrow("difficulty_level"))
-                
-                courses.add(Course(
-                    id = id,
-                    courseName = courseName,
-                    daysOfWeek = daysOfWeek,
-                    timeOfCourse = timeOfCourse,
-                    capacity = capacity,
-                    duration = duration,
-                    pricePerClass = pricePerClass,
-                    typeOfClass = typeOfClass,
-                    description = description,
-                    difficultyLevel = difficultyLevel
-                ))
+            Log.d("DatabaseHelper", "Cursor count: ${cursor.count}")
+
+            cursor.use { c ->
+                while (c.moveToNext()) {
+                    val id = c.getLong(c.getColumnIndexOrThrow(COLUMN_COURSE_ID))
+                    val courseName = c.getString(c.getColumnIndexOrThrow(COLUMN_COURSE_NAME))
+                    val daysOfWeek = c.getString(c.getColumnIndexOrThrow("days_of_week"))
+                    val timeOfCourse = c.getString(c.getColumnIndexOrThrow("time_of_course"))
+                    val capacity = c.getInt(c.getColumnIndexOrThrow("capacity"))
+                    val duration = c.getInt(c.getColumnIndexOrThrow("duration"))
+                    val pricePerClass = c.getDouble(c.getColumnIndexOrThrow("price_per_class"))
+                    val typeOfClass = c.getString(c.getColumnIndexOrThrow("type_of_class"))
+                    val description = c.getString(c.getColumnIndexOrThrow("description"))
+                    val difficultyLevel = c.getString(c.getColumnIndexOrThrow("difficulty_level"))
+                    
+                    courses.add(Course(
+                        id = id,
+                        courseName = courseName,
+                        daysOfWeek = daysOfWeek,
+                        timeOfCourse = timeOfCourse,
+                        capacity = capacity,
+                        duration = duration,
+                        pricePerClass = pricePerClass,
+                        typeOfClass = typeOfClass,
+                        description = description,
+                        difficultyLevel = difficultyLevel
+                    ))
+                    
+                    Log.d("DatabaseHelper", "Loaded course: $courseName")
+                }
             }
+        } catch (e: Exception) {
+            Log.e("DatabaseHelper", "Error getting courses", e)
         }
-        cursor.close()
         
+        Log.d("DatabaseHelper", "Total courses loaded: ${courses.size}")
         return courses
     }
 
@@ -758,5 +768,12 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
             values,
             SQLiteDatabase.CONFLICT_REPLACE
         )
+    }
+
+    suspend fun getCourseCount(): Int {
+        return withContext(Dispatchers.IO) {
+            val courses = getAllCourses()
+            return@withContext courses.size
+        }
     }
 }
