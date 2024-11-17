@@ -15,14 +15,20 @@ import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
+import kotlinx.coroutines.tasks.await
+import com.google.android.gms.tasks.Tasks
 
 class ClassViewModel(application: Application) : AndroidViewModel(application) {
     private val dbHelper = DatabaseHelper(application)
     private val _classes = MutableStateFlow<List<YogaClass>>(emptyList())
     val classes: StateFlow<List<YogaClass>> = _classes
+    private val _localOnlyClasses = MutableStateFlow<List<YogaClass>>(emptyList())
 
     private val _instructors = MutableStateFlow<List<String>>(emptyList())
     val instructors: StateFlow<List<String>> = _instructors
+
+    // Add a set to track deleted class IDs that need to be synced
+    private val _deletedClassIds = MutableStateFlow<Set<Int>>(emptySet())
 
     init {
         loadClasses()
@@ -32,24 +38,12 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
     fun loadClasses() {
         viewModelScope.launch {
             try {
-                Log.d("ClassViewModel", "Starting to load classes")
-                dbHelper.getClassesFromFirebase { classesList ->
-                    viewModelScope.launch {
-                        try {
-                            Log.d("ClassViewModel", "Received ${classesList.size} classes")
-                            classesList.forEach { yogaClass ->
-                                Log.d("ClassViewModel", "Class: ${yogaClass.name}")
-                            }
-                            _classes.emit(classesList)
-                        } catch (e: Exception) {
-                            Log.e("ClassViewModel", "Error emitting classes", e)
-                            e.printStackTrace()
-                        }
-                    }
-                }
+                // Load only from local database
+                val localClasses = dbHelper.getAllClasses()
+                _classes.emit(localClasses)
+                Log.d("ClassViewModel", "Loaded ${localClasses.size} classes from local DB")
             } catch (e: Exception) {
-                Log.e("ClassViewModel", "Error loading classes", e)
-                e.printStackTrace()
+                Log.e("ClassViewModel", "Error loading classes from local DB", e)
             }
         }
     }
@@ -64,30 +58,30 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
     ) {
         viewModelScope.launch {
             try {
-                Log.d("ClassViewModel", "Adding class: $name, $instructorName, $courseName")
-                val yogaClass = YogaClass(
-                    id = System.currentTimeMillis().toInt(),
-                    name = name,
-                    instructorName = instructorName,
-                    courseId = courseId,
-                    courseName = courseName,
-                    date = date,
-                    comment = comment
-                )
-                
-                dbHelper.addClassToFirebase(yogaClass) { success ->
-                    viewModelScope.launch {
-                        if (success) {
-                            Log.d("ClassViewModel", "Class added successfully")
-                            loadClasses()
-                        } else {
-                            Log.e("ClassViewModel", "Failed to add class")
-                        }
-                    }
+                // Save only to local database
+                val id = dbHelper.addClass(name, instructorName, courseName, date, comment)
+                if (id != -1L) {
+                    // Mark this class as needing sync
+                    val newClass = YogaClass(
+                        id = id.toInt(),
+                        name = name,
+                        instructorName = instructorName,
+                        courseId = courseId,
+                        courseName = courseName,
+                        date = date,
+                        comment = comment
+                    )
+                    
+                    // Add to local-only classes for later sync
+                    val localClasses = _localOnlyClasses.value.toMutableList()
+                    localClasses.add(newClass)
+                    _localOnlyClasses.emit(localClasses)
+                    
+                    // Reload from local DB to update UI
+                    loadClasses()
                 }
             } catch (e: Exception) {
                 Log.e("ClassViewModel", "Error adding class", e)
-                e.printStackTrace()
             }
         }
     }
@@ -95,19 +89,20 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
     fun deleteClass(id: Int) {
         viewModelScope.launch {
             try {
-                dbHelper.deleteClassFromFirebase(id.toString()) { success ->
-                    viewModelScope.launch {
-                        if (success) {
-                            println("Class deleted from Firebase successfully")
-                            loadClasses()
-                        } else {
-                            println("Failed to delete class from Firebase")
-                        }
-                    }
-                }
+                // Delete from local DB
+                dbHelper.deleteClass(id)
+                
+                // Add to deleted IDs set for sync
+                val currentDeletedIds = _deletedClassIds.value.toMutableSet()
+                currentDeletedIds.add(id)
+                _deletedClassIds.emit(currentDeletedIds)
+                
+                // Reload from local DB
+                loadClasses()
+                
+                Log.d("ClassViewModel", "Class $id marked for deletion and sync")
             } catch (e: Exception) {
-                println("Error deleting class from Firebase: ${e.message}")
-                e.printStackTrace()
+                Log.e("ClassViewModel", "Error deleting class", e)
             }
         }
     }
@@ -123,6 +118,10 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
     ) {
         viewModelScope.launch {
             try {
+                // Update only local DB
+                dbHelper.updateClass(id, name, instructorName, courseName, date, comment)
+                
+                // Mark this update for sync
                 val updatedClass = YogaClass(
                     id = id,
                     name = name,
@@ -133,20 +132,62 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
                     comment = comment
                 )
                 
-                dbHelper.updateClassInFirebase(id.toString(), updatedClass) { success ->
-                    viewModelScope.launch {
-                        if (success) {
-                            println("Class updated in Firebase successfully")
-                            loadClasses()
-                        } else {
-                            println("Failed to update class in Firebase")
-                        }
-                    }
-                }
+                val localClasses = _localOnlyClasses.value.toMutableList()
+                localClasses.add(updatedClass)
+                _localOnlyClasses.emit(localClasses)
+                
+                // Reload from local DB
+                loadClasses()
             } catch (e: Exception) {
-                println("Error updating class in Firebase: ${e.message}")
-                e.printStackTrace()
+                Log.e("ClassViewModel", "Error updating class", e)
             }
+        }
+    }
+
+    suspend fun syncClasses() {
+        try {
+            val firebaseRef = FirebaseDatabase.getInstance().getReference("classes")
+            
+            // First, handle deletions
+            val deletedIds = _deletedClassIds.value
+            Log.d("ClassViewModel", "Syncing deletions: ${deletedIds.size} classes to delete")
+            
+            deletedIds.forEach { id ->
+                try {
+                    // Remove from Firebase
+                    val deleteRef = firebaseRef.child(id.toString())
+                    Tasks.await(deleteRef.removeValue())
+                    Log.d("ClassViewModel", "Successfully deleted class $id from Firebase")
+                } catch (e: Exception) {
+                    Log.e("ClassViewModel", "Failed to delete class $id from Firebase", e)
+                }
+            }
+            
+            // Clear deleted IDs after successful sync
+            _deletedClassIds.emit(emptySet())
+
+            // Then sync remaining local classes
+            val localClasses = dbHelper.getAllClasses()
+            Log.d("ClassViewModel", "Syncing ${localClasses.size} local classes to Firebase")
+
+            // Upload local classes to Firebase
+            localClasses.forEach { yogaClass ->
+                try {
+                    val classRef = firebaseRef.child(yogaClass.id.toString())
+                    Tasks.await(classRef.setValue(yogaClass.toMap()))
+                    Log.d("ClassViewModel", "Successfully synced class ${yogaClass.id} to Firebase")
+                } catch (e: Exception) {
+                    Log.e("ClassViewModel", "Failed to sync class ${yogaClass.id}", e)
+                }
+            }
+
+            // Clear local-only changes after successful sync
+            _localOnlyClasses.emit(emptyList())
+            
+            Log.d("ClassViewModel", "Sync completed successfully")
+        } catch (e: Exception) {
+            Log.e("ClassViewModel", "Error during sync operation", e)
+            throw e
         }
     }
 
@@ -163,7 +204,7 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
             }
 
             override fun onCancelled(error: DatabaseError) {
-                // Handle error
+                Log.e("ClassViewModel", "Error loading instructors", error.toException())
             }
         })
     }

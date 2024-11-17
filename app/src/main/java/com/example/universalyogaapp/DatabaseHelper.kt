@@ -259,45 +259,33 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         val db = this.readableDatabase
         
         try {
-            val cursor = db.rawQuery("""
-                SELECT 
-                    $COLUMN_CLASS_ID,
-                    $COLUMN_CLASS_NAME,
-                    $COLUMN_CLASS_INSTRUCTOR_NAME,
-                    $COLUMN_CLASS_COURSE_NAME,
-                    $COLUMN_CLASS_DATE,
-                    $COLUMN_CLASS_COMMENT
-                FROM $TABLE_CLASSES 
-                ORDER BY $COLUMN_CLASS_DATE ASC, $COLUMN_CLASS_NAME ASC
-            """.trimIndent(), null)
+            val cursor = db.query(
+                TABLE_CLASSES,
+                null,
+                null,
+                null,
+                null,
+                null,
+                "$COLUMN_CLASS_DATE ASC, $COLUMN_CLASS_NAME ASC"
+            )
 
             cursor.use { c ->
-                val idIndex = c.getColumnIndex(COLUMN_CLASS_ID)
-                val nameIndex = c.getColumnIndex(COLUMN_CLASS_NAME)
-                val instructorIndex = c.getColumnIndex(COLUMN_CLASS_INSTRUCTOR_NAME)
-                val courseIndex = c.getColumnIndex(COLUMN_CLASS_COURSE_NAME)
-                val dateIndex = c.getColumnIndex(COLUMN_CLASS_DATE)
-                val commentIndex = c.getColumnIndex(COLUMN_CLASS_COMMENT)
-
                 while (c.moveToNext()) {
                     classes.add(
                         YogaClass(
-                            id = c.getInt(idIndex),
-                            name = c.getString(nameIndex) ?: "",
-                            instructorName = c.getString(instructorIndex) ?: "",
-                            courseName = c.getString(courseIndex) ?: "",
-                            date = c.getString(dateIndex) ?: "",
-                            comment = if (commentIndex != -1 && !c.isNull(commentIndex)) {
-                                c.getString(commentIndex) ?: ""
-                            } else {
-                                ""
-                            }
+                            id = c.getInt(c.getColumnIndexOrThrow(COLUMN_CLASS_ID)),
+                            name = c.getString(c.getColumnIndexOrThrow(COLUMN_CLASS_NAME)),
+                            instructorName = c.getString(c.getColumnIndexOrThrow(COLUMN_CLASS_INSTRUCTOR_NAME)),
+                            courseId = 0, // You might want to store and retrieve this
+                            courseName = c.getString(c.getColumnIndexOrThrow(COLUMN_CLASS_COURSE_NAME)),
+                            date = c.getString(c.getColumnIndexOrThrow(COLUMN_CLASS_DATE)),
+                            comment = c.getString(c.getColumnIndexOrThrow(COLUMN_CLASS_COMMENT))
                         )
                     )
                 }
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e("DatabaseHelper", "Error getting all classes", e)
         }
         
         return classes
@@ -313,18 +301,18 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         val db = this.writableDatabase
         return try {
             val values = ContentValues().apply {
-                put("name", name)
-                put("instructor_name", instructorName)
-                put("course_name", courseName)
-                put("date", date)
-                put("comment", comment)
+                put(COLUMN_CLASS_NAME, name)
+                put(COLUMN_CLASS_INSTRUCTOR_NAME, instructorName)
+                put(COLUMN_CLASS_COURSE_NAME, courseName)
+                put(COLUMN_CLASS_DATE, date)
+                put(COLUMN_CLASS_COMMENT, comment)
             }
             
-            val id = db.insert("classes", null, values)
-            println("Added class with id: $id") // Debug log
+            val id = db.insert(TABLE_CLASSES, null, values)
+            Log.d("DatabaseHelper", "Added class with id: $id")
             id
         } catch (e: Exception) {
-            println("Error in addClass: ${e.message}") // Debug log
+            Log.e("DatabaseHelper", "Error in addClass: ${e.message}")
             e.printStackTrace()
             -1
         }

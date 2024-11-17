@@ -40,17 +40,26 @@ import com.example.universalyogaapp.R
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
-
-
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import androidx.compose.material.icons.filled.Sync
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ClassesScreen(navController: NavController) {
+    val context = LocalContext.current
     val classViewModel: ClassViewModel = viewModel()
     val courseViewModel: CourseViewModel = viewModel()
     val classes by classViewModel.classes.collectAsState()
     val instructors by classViewModel.instructors.collectAsState()
     val courses by courseViewModel.firebaseCourses.collectAsState()
+    val scope = rememberCoroutineScope()
+    
+    var isSyncing by remember { mutableStateOf(false) }
+    var showSyncError by remember { mutableStateOf(false) }
 
     var showFilters by remember { mutableStateOf(false) }
     var selectedInstructor by remember { mutableStateOf("") }
@@ -74,10 +83,62 @@ fun ClassesScreen(navController: NavController) {
         courseViewModel.loadCoursesFromFirebase()
     }
 
+    if (showSyncError) {
+        AlertDialog(
+            onDismissRequest = { showSyncError = false },
+            title = { Text("Sync Error") },
+            text = { Text("Please check your internet connection and try again.") },
+            confirmButton = {
+                TextButton(onClick = { showSyncError = false }) {
+                    Text("OK")
+                }
+            },
+            containerColor = Color.White
+        )
+    }
+
     CommonScaffold(
         navController = navController,
         title = "Classes",
         actions = {
+            IconButton(
+                onClick = {
+                    scope.launch {
+                        if (isNetworkAvailable(context)) {
+                            isSyncing = true
+                            try {
+                                classViewModel.syncClasses()
+                            } catch (e: Exception) {
+                                showSyncError = true
+                            } finally {
+                                isSyncing = false
+                            }
+                        } else {
+                            showSyncError = true
+                        }
+                    }
+                },
+                enabled = !isSyncing,
+                modifier = Modifier.size(48.dp)
+            ) {
+                if (isSyncing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.secondary,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Sync,
+                        contentDescription = "Sync classes",
+                        tint = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.width(8.dp))
+            
             OutlinedButton(
                 onClick = { 
                     try {
@@ -726,4 +787,13 @@ private fun formatDate(dateString: String): String {
     } catch (e: Exception) {
         dateString
     }
+}
+
+private fun isNetworkAvailable(context: Context): Boolean {
+    val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    val network = connectivityManager.activeNetwork ?: return false
+    val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
+    
+    return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+           capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
 }
