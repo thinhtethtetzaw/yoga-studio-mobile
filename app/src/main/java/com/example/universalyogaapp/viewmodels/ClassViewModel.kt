@@ -11,6 +11,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import android.util.Log
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
 
 class ClassViewModel(application: Application) : AndroidViewModel(application) {
     private val dbHelper = DatabaseHelper(application)
@@ -147,8 +151,20 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun loadInstructors() {
-        viewModelScope.launch {
-            _instructors.value = dbHelper.getAllInstructorNames()
-        }
+        val database = FirebaseDatabase.getInstance()
+        database.getReference("instructors").addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val instructorsList = mutableListOf<String>()
+                snapshot.children.forEach { instructorSnapshot ->
+                    val name = instructorSnapshot.child("name").getValue(String::class.java)
+                    name?.let { instructorsList.add(it) }
+                }
+                _instructors.value = instructorsList
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                // Handle error
+            }
+        })
     }
 } 

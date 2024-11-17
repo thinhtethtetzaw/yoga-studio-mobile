@@ -35,16 +35,43 @@ import android.app.DatePickerDialog
 import androidx.compose.ui.platform.LocalContext
 import com.example.universalyogaapp.components.DatePickerField
 import com.example.universalyogaapp.viewmodels.CourseViewModel
+import androidx.compose.ui.res.painterResource
+import com.example.universalyogaapp.R
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ClassesScreen(navController: NavController) {
     val classViewModel: ClassViewModel = viewModel()
+    val courseViewModel: CourseViewModel = viewModel()
     val classes by classViewModel.classes.collectAsState()
+    val instructors by classViewModel.instructors.collectAsState()
+    val courses by courseViewModel.firebaseCourses.collectAsState()
+
+    var showFilters by remember { mutableStateOf(false) }
+    var selectedInstructor by remember { mutableStateOf("") }
+    var selectedClassName by remember { mutableStateOf("") }
+    var selectedCourse by remember { mutableStateOf("") }
+    var selectedDate by remember { mutableStateOf("") }
+
+    var instructorExpanded by remember { mutableStateOf(false) }
+    var courseExpanded by remember { mutableStateOf(false) }
+
+    var searchQuery by remember { mutableStateOf("") }
+
+    // Get unique class names
+    val uniqueClassNames = remember(classes) {
+        classes.map { it.name }.distinct()
+    }
 
     LaunchedEffect(Unit) {
         classViewModel.loadClasses()
+        classViewModel.loadInstructors()
+        courseViewModel.loadCoursesFromFirebase()
     }
 
     CommonScaffold(
@@ -64,26 +91,225 @@ fun ClassesScreen(navController: NavController) {
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary),
                 shape = RoundedCornerShape(6.dp)
             ) {
-                Spacer(modifier = Modifier.width(4.dp))
                 Text("+ Add", color = MaterialTheme.colorScheme.secondary)
             }
         }
     ) { paddingValues ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            if (classes.isEmpty()) {
+            // Search and Filter Section
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp,16.dp, 16.dp, 0.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                shape = RoundedCornerShape(6.dp)
+            ) {
                 Column(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Search Bar
+                        OutlinedTextField(
+                            value = searchQuery,
+                            onValueChange = { searchQuery = it },
+                            modifier = Modifier.weight(1f).background(Color.White, RoundedCornerShape(6.dp)),
+                            placeholder = { Text("Class by name or instructor") },
+                            leadingIcon = {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_search),
+                                    contentDescription = "Search",
+                                    tint = Color.Gray
+                                )
+                            },
+                            trailingIcon = {
+                                if (searchQuery.isNotEmpty()) {
+                                    IconButton(onClick = { searchQuery = "" }) {
+                                        Icon(
+                                            painter = painterResource(id = R.drawable.ic_close),
+                                            contentDescription = "Clear",
+                                            tint = Color.Gray
+                                        )
+                                    }
+                                }
+                            },
+                            singleLine = true,
+                            shape = RoundedCornerShape(6.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                unfocusedBorderColor = Color(0xFFEEEEEE),
+                                focusedBorderColor = Color(0xFFDDDDDD)
+                            )
+                        )
+
+                        // Filter Icon Button
+                        IconButton(
+                            onClick = { showFilters = true },
+                            modifier = Modifier.padding(start = 8.dp).background(Color.White, RoundedCornerShape(6.dp)),
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_filter),
+                                contentDescription = "Filter",
+                                tint = if (selectedCourse.isNotEmpty() || selectedDate.isNotEmpty()) 
+                                    MaterialTheme.colorScheme.primary 
+                                else 
+                                    Color.Gray
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Filters Section
+            if (showFilters) {
+                AlertDialog(
+                    onDismissRequest = { showFilters = false },
+                    properties = DialogProperties(
+                        dismissOnBackPress = true,
+                        dismissOnClickOutside = true,
+                        usePlatformDefaultWidth = false
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    containerColor = Color.White,
+                    shape = RoundedCornerShape(6.dp),
+                    title = {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                "Filters",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                            IconButton(
+                                onClick = { showFilters = false }
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_close),
+                                    contentDescription = "Close",
+                                    tint = Color.Gray
+                                )
+                            }
+                        }
+                    },
+                    text = {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            // Course Filter
+                            ExposedDropdownMenuBox(
+                                expanded = courseExpanded,
+                                onExpandedChange = { courseExpanded = it }
+                            ) {
+                                OutlinedTextField(
+                                    value = selectedCourse,
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text("Select Course") },
+                                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = courseExpanded) },
+                                    modifier = Modifier
+                                        .menuAnchor()
+                                        .fillMaxWidth()
+                                )
+                                ExposedDropdownMenu(
+                                    expanded = courseExpanded,
+                                    onDismissRequest = { courseExpanded = false }
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("All Courses") },
+                                        onClick = {
+                                            selectedCourse = ""
+                                            courseExpanded = false
+                                        }
+                                    )
+                                    courses.forEach { course ->
+                                        DropdownMenuItem(
+                                            text = { Text(course.courseName) },
+                                            onClick = {
+                                                selectedCourse = course.courseName
+                                                courseExpanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Date Filter
+                            DatePickerField(
+                                value = selectedDate,
+                                onDateSelected = { selectedDate = it },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedButton(
+                                onClick = {
+                                    selectedCourse = ""
+                                    selectedDate = ""
+                                },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(6.dp)
+                            ) {
+                                Text("Clear All", color = Color.DarkGray)
+                            }
+                            Button(
+                                onClick = { showFilters = false },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(6.dp)
+                            ) {
+                                Text("Apply")
+                            }
+                        }
+                    }
+                )
+            }
+
+            // Filtered Classes List - Updated to include search query
+            val filteredClasses = remember(
+                classes, 
+                searchQuery, 
+                selectedCourse, 
+                selectedDate
+            ) {
+                classes.filter { yogaClass ->
+                    val matchesSearch = searchQuery.isEmpty() || 
+                        yogaClass.name.contains(searchQuery, ignoreCase = true) ||
+                        yogaClass.instructorName.contains(searchQuery, ignoreCase = true)
+                    val matchesCourse = selectedCourse.isEmpty() || yogaClass.courseName == selectedCourse
+                    val matchesDate = selectedDate.isEmpty() || yogaClass.date == selectedDate
+
+                    matchesSearch && matchesCourse && matchesDate
+                }
+            }
+
+            if (filteredClasses.isEmpty()) {
+                Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(16.dp),
-                    verticalArrangement = Arrangement.Top,
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "No classes available",
+                        text = if (classes.isEmpty()) "No classes available" else "No matching classes found",
                         style = MaterialTheme.typography.bodyLarge
                     )
                 }
@@ -93,7 +319,7 @@ fun ClassesScreen(navController: NavController) {
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(classes) { yogaClass ->
+                    items(filteredClasses) { yogaClass ->
                         ClassCard(yogaClass = yogaClass)
                     }
                 }
