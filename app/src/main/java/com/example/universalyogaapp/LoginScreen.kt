@@ -118,9 +118,9 @@ fun LoginScreen(navController: NavController) {
             Text("Login")
         }
 
-        TextButton(onClick = { navController.navigate(Routes.Register.route) }) {
-            Text("Don't have an account? Register", color = Color.DarkGray)
-        }
+        // TextButton(onClick = { navController.navigate(Routes.Register.route) }) {
+        //     Text("Don't have an account? Register", color = Color.DarkGray)
+        // }
     }
 }
 
