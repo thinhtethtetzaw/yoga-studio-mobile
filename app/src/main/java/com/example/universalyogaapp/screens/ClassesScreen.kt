@@ -55,7 +55,7 @@ fun ClassesScreen(navController: NavController) {
     val courseViewModel: CourseViewModel = viewModel()
     val classes by classViewModel.classes.collectAsState()
     val instructors by classViewModel.instructors.collectAsState()
-    val courses by courseViewModel.firebaseCourses.collectAsState()
+    val courses by courseViewModel.coursesWithCount.collectAsState()
     val scope = rememberCoroutineScope()
     
     var isSyncing by remember { mutableStateOf(false) }
@@ -80,7 +80,7 @@ fun ClassesScreen(navController: NavController) {
     LaunchedEffect(Unit) {
         classViewModel.loadClasses()
         classViewModel.loadInstructors()
-        courseViewModel.loadCoursesFromFirebase()
+        courseViewModel.loadCourses()
     }
 
     if (showSyncError) {
@@ -295,11 +295,11 @@ fun ClassesScreen(navController: NavController) {
                                             courseExpanded = false
                                         }
                                     )
-                                    courses.forEach { course ->
+                                    courses.forEach { courseWithCount ->
                                         DropdownMenuItem(
-                                            text = { Text(course.courseName) },
+                                            text = { Text(courseWithCount.course.courseName) },
                                             onClick = {
-                                                selectedCourse = course.courseName
+                                                selectedCourse = courseWithCount.course.courseName
                                                 courseExpanded = false
                                             }
                                         )

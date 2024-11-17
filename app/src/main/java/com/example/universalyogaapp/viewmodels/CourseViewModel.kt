@@ -18,6 +18,7 @@ import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.tasks.await
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.android.gms.tasks.Tasks
 
 class CourseViewModel(application: Application) : AndroidViewModel(application) {
     private val repository: CourseRepository
@@ -31,25 +32,37 @@ class CourseViewModel(application: Application) : AndroidViewModel(application) 
     private val firestore = FirebaseFirestore.getInstance()
     private val _localOnlyCourses = MutableStateFlow<List<Course>>(emptyList())
     val localOnlyCourses: StateFlow<List<Course>> = _localOnlyCourses
-    
+    private val _deletedCourseIds = MutableStateFlow<Set<Long>>(emptySet())
+    private val _localChanges = MutableStateFlow<Boolean>(false)
+    val localChanges: StateFlow<Boolean> = _localChanges
+
     init {
         val courseDao = YogaDatabase.getDatabase(application).courseDao()
         repository = CourseRepository(courseDao)
-        loadCoursesFromFirebase()
+        loadCourses()
     }
 
     fun insertCourse(course: Course) {
         viewModelScope.launch {
             try {
-                // Insert into local database
+                // Insert into local database only
                 val id = repository.insertCourse(course)
                 val courseWithId = course.copy(id = id)
                 
-                // Update local courses list
+                // Add to local-only courses for later sync
+                val localCourses = _localOnlyCourses.value.toMutableList()
+                localCourses.add(courseWithId)
+                _localOnlyCourses.emit(localCourses)
+                
+                // Mark that we have local changes
+                _localChanges.emit(true)
+                
+                // Update the courses list for UI
                 val currentCourses = _firebaseCourses.value.toMutableList()
                 currentCourses.add(courseWithId)
                 _firebaseCourses.emit(currentCourses)
                 
+                Log.d("CourseViewModel", "Course added locally")
             } catch (e: Exception) {
                 Log.e("CourseViewModel", "Error inserting course", e)
             }
@@ -62,17 +75,56 @@ class CourseViewModel(application: Application) : AndroidViewModel(application) 
 
     fun deleteCourse(course: Course) {
         viewModelScope.launch {
-            repository.deleteCourse(course)
-            // Also delete from Firebase using the course's ID
-            deleteCourseFromFirebase(course.id.toString())
+            try {
+                // Delete from local DB
+                repository.deleteCourse(course)
+                
+                // Add to deleted IDs set for sync
+                val currentDeletedIds = _deletedCourseIds.value.toMutableSet()
+                currentDeletedIds.add(course.id)
+                _deletedCourseIds.emit(currentDeletedIds)
+                
+                
+               loadCourses()
+                
+                Log.d("CourseViewModel", "Course ${course.id} deleted locally and marked for sync. DeletedIds: ${_deletedCourseIds.value}")
+            } catch (e: Exception) {
+                Log.e("CourseViewModel", "Error deleting course", e)
+            }
         }
     }
 
     fun updateCourse(course: Course) {
         viewModelScope.launch {
-            repository.updateCourse(course)
-            // Also update in Firebase using the course's ID
-            updateCourseInFirebase(course.id.toString(), course)
+            try {
+                // Update local DB only
+                repository.updateCourse(course)
+                
+                // Add to local-only courses for sync
+                val localCourses = _localOnlyCourses.value.toMutableList()
+                localCourses.add(course)
+                _localOnlyCourses.emit(localCourses)
+                
+                // Mark that we have local changes
+                _localChanges.emit(true)
+                
+                // Update the selected course
+                _selectedCourse.emit(course)
+                
+                // Update the courses list for UI
+                val currentCourses = _firebaseCourses.value.toMutableList()
+                val index = currentCourses.indexOfFirst { it.id == course.id }
+                if (index != -1) {
+                    currentCourses[index] = course
+                } else {
+                    currentCourses.add(course)
+                }
+                _firebaseCourses.emit(currentCourses)
+                
+                Log.d("CourseViewModel", "Course ${course.id} updated locally")
+            } catch (e: Exception) {
+                Log.e("CourseViewModel", "Error updating course", e)
+            }
         }
     }
 
@@ -95,38 +147,11 @@ class CourseViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    fun loadCoursesFromFirebase() {
-        viewModelScope.launch {
-            try {
-                val firebaseRef = FirebaseDatabase.getInstance().getReference("courses")
-                firebaseRef.get()
-                    .addOnSuccessListener { snapshot ->
-                        val firebaseCourses = snapshot.children.mapNotNull { 
-                            it.getValue(Course::class.java) 
-                        }
-                        viewModelScope.launch {
-                            _firebaseCourses.emit(firebaseCourses)
-                        }
-                    }
-                    .addOnFailureListener { e ->
-                        Log.e("CourseViewModel", "Error loading courses from Firebase", e)
-                        // If Firebase fails, load from local database
-                        viewModelScope.launch {
-                            val localCourses = repository.getAllCourses().first()
-                            _firebaseCourses.emit(localCourses)
-                        }
-                    }
-            } catch (e: Exception) {
-                Log.e("CourseViewModel", "Error loading courses", e)
-            }
-        }
-    }
-
     fun updateCourseInFirebase(courseId: String, course: Course) {
         dbHelper.updateCourseInFirebase(courseId, course) { success ->
             if (success) {
                 Log.d("CourseViewModel", "Course successfully updated in Firebase")
-                loadCoursesFromFirebase()
+                loadCourses()
             } else {
                 Log.e("CourseViewModel", "Failed to update course in Firebase")
             }
@@ -137,7 +162,7 @@ class CourseViewModel(application: Application) : AndroidViewModel(application) 
         dbHelper.deleteCourseFromFirebase(courseId) { success ->
             if (success) {
                 Log.d("CourseViewModel", "Course successfully deleted from Firebase")
-                loadCoursesFromFirebase()
+                loadCourses()
             } else {
                 Log.e("CourseViewModel", "Failed to delete course from Firebase")
             }
@@ -147,19 +172,22 @@ class CourseViewModel(application: Application) : AndroidViewModel(application) 
     fun loadCourses() {
         viewModelScope.launch {
             try {
-                // Get courses from Firebase
-                dbHelper.getCoursesFromFirebase { courses ->
-                    viewModelScope.launch {
-                        // Convert courses to CourseWithClassCount
-                        val coursesWithCount = courses.map { course ->
-                            val classCount = dbHelper.getClassCountForCourse(course.courseName)
-                            CourseWithClassCount(course, classCount)
-                        }
-                        _coursesWithCount.emit(coursesWithCount)
+                // Get courses from local database
+                repository.getAllCourses().collect { localCourses ->
+                    // Convert courses to CourseWithClassCount
+                    val coursesWithCount = localCourses.map { course ->
+                        val classCount = dbHelper.getClassCountForCourse(course.courseName)
+                        CourseWithClassCount(course, classCount)
                     }
+                    _coursesWithCount.emit(coursesWithCount)
+                    
+                    // Also update firebaseCourses for other parts of the app
+                    _firebaseCourses.emit(localCourses)
+                    
+                    Log.d("CourseViewModel", "Loaded ${localCourses.size} courses from local database")
                 }
             } catch (e: Exception) {
-                Log.e("CourseViewModel", "Error loading courses: ${e.message}")
+                Log.e("CourseViewModel", "Error loading courses from local database: ${e.message}")
             }
         }
     }
@@ -191,57 +219,98 @@ class CourseViewModel(application: Application) : AndroidViewModel(application) 
             }
     }
 
+    // suspend fun syncClasses() {
+    //     try {
+    //         val firebaseRef = FirebaseDatabase.getInstance().getReference("classes")
+            
+    //         // First, handle deletions
+    //         val deletedIds = _deletedClassIds.value
+    //         Log.d("ClassViewModel", "Syncing deletions: ${deletedIds.size} classes to delete")
+            
+    //         deletedIds.forEach { id ->
+    //             try {
+    //                 // Remove from Firebase
+    //                 val deleteRef = firebaseRef.child(id.toString())
+    //                 Tasks.await(deleteRef.removeValue())
+    //                 Log.d("ClassViewModel", "Successfully deleted class $id from Firebase")
+    //             } catch (e: Exception) {
+    //                 Log.e("ClassViewModel", "Failed to delete class $id from Firebase", e)
+    //             }
+    //         }
+            
+    //         // Clear deleted IDs after successful sync
+    //         _deletedClassIds.emit(emptySet())
+
+    //         // Then sync remaining local classes
+    //         val localClasses = dbHelper.getAllClasses()
+    //         Log.d("ClassViewModel", "Syncing ${localClasses.size} local classes to Firebase")
+
+    //         // Upload local classes to Firebase
+    //         localClasses.forEach { yogaClass ->
+    //             try {
+    //                 val classRef = firebaseRef.child(yogaClass.id.toString())
+    //                 Tasks.await(classRef.setValue(yogaClass.toMap()))
+    //                 Log.d("ClassViewModel", "Successfully synced class ${yogaClass.id} to Firebase")
+    //             } catch (e: Exception) {
+    //                 Log.e("ClassViewModel", "Failed to sync class ${yogaClass.id}", e)
+    //             }
+    //         }
+
+    //         // Clear local-only changes after successful sync
+    //         _localOnlyClasses.emit(emptyList())
+            
+    //         Log.d("ClassViewModel", "Sync completed successfully")
+    //     } catch (e: Exception) {
+    //         Log.e("ClassViewModel", "Error during sync operation", e)
+    //         throw e
+    //     }
+    // }
+
     suspend fun syncCourses() {
         try {
-            // Get all local courses
-            val localCourses = repository.getAllCourses().first()
-            
-            // Get all Firebase courses
             val firebaseRef = FirebaseDatabase.getInstance().getReference("courses")
-            val snapshot = firebaseRef.get().await()
-            val firebaseCourses = snapshot.children.mapNotNull { 
-                it.getValue(Course::class.java) 
-            }
             
-            // Create a map of existing Firebase course IDs
-            val firebaseCourseIds = firebaseCourses.map { it.id }.toSet()
+            // First, handle deletions
+            val deletedIds = _deletedCourseIds.value
+            Log.d("CourseViewModel", "Syncing deletions: ${deletedIds.size} courses to delete")
             
-            // Upload local courses that don't exist in Firebase
-            localCourses.forEach { localCourse ->
-                if (!firebaseCourseIds.contains(localCourse.id)) {
-                    try {
-                        // Add course to Firebase Realtime Database
-                        val courseRef = firebaseRef.child(localCourse.id.toString())
-                        courseRef.setValue(localCourse.toMap())
-                            .addOnSuccessListener {
-                                Log.d("CourseViewModel", "Successfully synced local course ${localCourse.id} to Firebase")
-                            }
-                            .addOnFailureListener { e ->
-                                Log.e("CourseViewModel", "Failed to sync course ${localCourse.id}", e)
-                            }
-                            .await()
-                    } catch (e: Exception) {
-                        Log.e("CourseViewModel", "Error syncing course ${localCourse.id}", e)
-                    }
+            deletedIds.forEach { id ->
+                try {
+                    // Remove from Firebase
+                    val deleteRef = firebaseRef.child(id.toString())
+                    Tasks.await(deleteRef.removeValue())
+                    Log.d("CourseViewModel", "Successfully deleted course $id from Firebase")
+                } catch (e: Exception) {
+                    Log.e("CourseViewModel", "Failed to delete course $id from Firebase", e)
                 }
             }
             
-            // Download Firebase courses that don't exist locally
-            val localCourseIds = localCourses.map { it.id }.toSet()
-            firebaseCourses.forEach { firebaseCourse ->
-                if (!localCourseIds.contains(firebaseCourse.id)) {
-                    try {
-                        repository.insertCourse(firebaseCourse)
-                        Log.d("CourseViewModel", "Successfully synced Firebase course ${firebaseCourse.id} to local DB")
-                    } catch (e: Exception) {
-                        Log.e("CourseViewModel", "Error syncing Firebase course ${firebaseCourse.id} to local", e)
-                    }
+            // Clear deleted IDs after successful sync
+            _deletedCourseIds.emit(emptySet())
+
+            // Then sync remaining local courses
+            val localCourses = repository.getAllCourses().first()
+            Log.d("CourseViewModel", "Syncing ${localCourses.size} local courses to Firebase")
+
+            // Upload local courses to Firebase
+            localCourses.forEach { course ->
+                try {
+                    val courseRef = firebaseRef.child(course.id.toString())
+                    Tasks.await(courseRef.setValue(course.toMap()))
+                    Log.d("CourseViewModel", "Successfully synced course ${course.id} to Firebase")
+                } catch (e: Exception) {
+                    Log.e("CourseViewModel", "Failed to sync course ${course.id}", e)
                 }
             }
+
+            // Clear local-only changes after successful sync
+            _localOnlyCourses.emit(emptyList())
+            _localChanges.emit(false)
             
-            // Reload courses to update the UI
-            loadCoursesFromFirebase()
+            Log.d("CourseViewModel", "Sync completed successfully")
             
+            // Reload courses to update UI
+            loadCourses()
         } catch (e: Exception) {
             Log.e("CourseViewModel", "Error during sync operation", e)
             throw e
@@ -269,6 +338,26 @@ class CourseViewModel(application: Application) : AndroidViewModel(application) 
                 // Handle Firebase sync error
                 // Course is still saved locally
                 e.printStackTrace()
+            }
+        }
+    }
+
+    fun loadCourseById(courseId: Long) {
+        viewModelScope.launch {
+            try {
+                // Load from local database
+                repository.getCourseById(courseId).collect { localCourse ->
+                    localCourse?.let {
+                        _selectedCourse.emit(it)
+                        Log.d("CourseViewModel", "Loaded course $courseId from local database")
+                    } ?: run {
+                        Log.e("CourseViewModel", "Course $courseId not found in local database")
+                        _selectedCourse.emit(null)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("CourseViewModel", "Error loading course $courseId", e)
+                _selectedCourse.emit(null)
             }
         }
     }

@@ -53,9 +53,16 @@ import com.example.universalyogaapp.data.YogaClass
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPagerApi::class)
 @Composable
-fun HomeScreen(navController: NavController) {
+fun HomeScreen(
+    navController: NavController,
+    courseViewModel: CourseViewModel = viewModel()
+) {
     val context = LocalContext.current
     val sessionManager = remember { SessionManager(context) }
+
+    LaunchedEffect(Unit) {
+        courseViewModel.loadCourses()
+    }
 
     CommonScaffold(
         navController = navController,
@@ -453,7 +460,7 @@ fun CoursesList(navController: NavController) {
     val classes by classViewModel.classes.collectAsState()
 
     LaunchedEffect(Unit) {
-        courseViewModel.loadCoursesFromFirebase()
+        courseViewModel.loadCourses()
     }
 
     if (courses.isEmpty()) {

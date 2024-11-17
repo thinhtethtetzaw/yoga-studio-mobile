@@ -36,44 +36,33 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import android.util.Log
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CoursesScreen(
     navController: NavController,
-    courseViewModel: CourseViewModel = viewModel(),
-    classViewModel: ClassViewModel = viewModel()
+    courseViewModel: CourseViewModel = viewModel()
 ) {
-    val context = LocalContext.current
-    val courses by courseViewModel.firebaseCourses.collectAsState()
-    val classes by classViewModel.classes.collectAsState()
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     
     var isSyncing by remember { mutableStateOf(false) }
     var showSyncError by remember { mutableStateOf(false) }
-
+    
     LaunchedEffect(Unit) {
-        courseViewModel.loadCoursesFromFirebase()
+        courseViewModel.loadCourses()
     }
 
-    if (showSyncError) {
-        AlertDialog(
-            onDismissRequest = { showSyncError = false },
-            title = { Text("Sync Error") },
-            text = { Text("Please check your internet connection and try again.") },
-            confirmButton = {
-                TextButton(onClick = { showSyncError = false }) {
-                    Text("OK")
-                }
-            },
-            containerColor = Color.White
-        )
-    }
+    val coursesWithCount by courseViewModel.coursesWithCount.collectAsState()
+    val hasLocalChanges by courseViewModel.localChanges.collectAsState()
+
 
     CommonScaffold(
         navController = navController,
-        title = "Course",
+        title = "Courses",
         actions = {
+            // Existing Sync Button
             IconButton(
                 onClick = {
                     scope.launch {
@@ -81,7 +70,9 @@ fun CoursesScreen(
                             isSyncing = true
                             try {
                                 courseViewModel.syncCourses()
+                                showSyncError = false
                             } catch (e: Exception) {
+                                Log.e("CoursesScreen", "Sync error", e)
                                 showSyncError = true
                             } finally {
                                 isSyncing = false
@@ -91,72 +82,62 @@ fun CoursesScreen(
                         }
                     }
                 },
-                enabled = !isSyncing
+                enabled = !isSyncing,
+                modifier = Modifier.size(48.dp)
             ) {
                 if (isSyncing) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(24.dp),
-                        color = MaterialTheme.colorScheme.secondary
+                        color = MaterialTheme.colorScheme.secondary,
+                        strokeWidth = 2.dp
                     )
                 } else {
                     Icon(
                         imageVector = Icons.Default.Sync,
                         contentDescription = "Sync courses",
-                        tint = MaterialTheme.colorScheme.secondary
+                        tint = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.size(24.dp)
                     )
                 }
             }
-            
-            Spacer(modifier = Modifier.width(8.dp))
-            
+
+            // Add Course Button
             OutlinedButton(
                 onClick = { navController.navigate("create_course") },
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary),
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.primary
+                ),
                 modifier = Modifier.padding(end = 16.dp),
-                shape = RoundedCornerShape(4.dp)
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary),
+                shape = RoundedCornerShape(6.dp)
             ) {
                 Text("+ Add", color = MaterialTheme.colorScheme.secondary)
             }
-        }
-    ) { padding ->
-        Column(
-            modifier = Modifier.padding(top = padding.calculateTopPadding())
-        ) {
-            if (courses.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "No courses available.\nClick + to add a new course.",
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                }
-            } else {
+        },
+        content = { padding ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+            ) {
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(
-                        start = 16.dp,
-                        end = 16.dp,
-                        top = 8.dp,
-                        bottom = padding.calculateBottomPadding() + 16.dp
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(courses) { course ->
-                        val classCount = classes.count { it.courseName == course.courseName }
+                    items(coursesWithCount) { courseWithCount ->
                         CourseCard(
-                            courseWithCount = CourseWithClassCount(
-                                course = course, 
-                                classCount = classCount
-                            ),
-                            onClick = { navController.navigate("course_detail/${course.id}") }
+                            courseWithCount = courseWithCount,
+                            onClick = {
+                                navController.navigate("course_detail/${courseWithCount.course.id}")
+                            }
                         )
                     }
                 }
             }
         }
-    }
+    )
 }
 
 private fun isNetworkAvailable(context: Context): Boolean {

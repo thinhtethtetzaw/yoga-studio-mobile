@@ -31,165 +31,185 @@ fun CourseDetailScreen(
     courseViewModel: CourseViewModel = viewModel(),
     classViewModel: ClassViewModel = viewModel()
 ) {
-    val courses by courseViewModel.firebaseCourses.collectAsState()
-    val course = courses.find { it.id == courseId }
-    
+    LaunchedEffect(courseId) {
+        courseViewModel.loadCourseById(courseId)
+        classViewModel.loadClasses()
+    }
+
+    val selectedCourse by courseViewModel.selectedCourse.collectAsState()
     val classes by classViewModel.classes.collectAsState()
     var showDeleteDialog by remember { mutableStateOf(false) }
 
-    val relatedClasses = classes.filter { it.courseName == course?.courseName }
+    val relatedClasses = classes.filter { it.courseName == selectedCourse?.courseName }
 
     CommonScaffold(
         navController = navController,
-        title = "Course",
+        title = selectedCourse?.courseName ?: "Course",
         content = { padding ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp, vertical = 16.dp)
-                ) {
-                    course?.let { course ->
-                        Text(
-                            text = "${course.courseName}",
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.DarkGray
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        
-                        Text(
-                            text = course.daysOfWeek.split(",").joinToString(", "),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = Color.Gray
-                        )
-                        
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(vertical = 8.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Schedule,
-                                contentDescription = null,
-                                tint = Color.Gray,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "${course.timeOfCourse} | ${course.duration / 60} Hours",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = Color.Gray
-                            )
-                        }
-
-                        course.description?.let { description ->
-                            Text(
-                                text = "Description: ${description}",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = Color.Gray
-                            )
-                        }
-
-                        Text(
-                            text = "£${course.pricePerClass}/class",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(vertical = 8.dp),
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Row(
+            when {
+                selectedCourse == null -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
+                else -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(padding)
+                    ) {
+                        Column(
                             modifier = Modifier
-                                .fillMaxWidth(),
+                                .fillMaxSize()
+                                .padding(horizontal = 16.dp, vertical = 16.dp)
                         ) {
-                            InfoCard(
-                                title = "Capacity",
-                                value = "${course.capacity}",
-                                modifier = Modifier.weight(1f)
-                            )
-                            InfoCard(
-                                title = "Level",
-                                value = "${course.difficultyLevel}",
-                                modifier = Modifier.weight(1f)
-                            )
-                            InfoCard(
-                                title = "Type",
-                                value = "${course.typeOfClass}",
-                                modifier = Modifier.weight(1f)
-                            )
+                            selectedCourse?.let { course ->
+                                Text(
+                                    text = "${course.courseName}",
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.DarkGray
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                
+                                Text(
+                                    text = course.daysOfWeek.split(",").joinToString(", "),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = Color.Gray
+                                )
+                                
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(vertical = 8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Schedule,
+                                        contentDescription = null,
+                                        tint = Color.Gray,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "${course.timeOfCourse} | ${course.duration / 60} Hours",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = Color.Gray
+                                    )
+                                }
+
+                                course.description?.let { description ->
+                                    Text(
+                                        text = "Description: ${description}",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = Color.Gray
+                                    )
+                                }
+
+                                Text(
+                                    text = "£${course.pricePerClass}/class",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(vertical = 8.dp),
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth(),
+                                ) {
+                                    InfoCard(
+                                        title = "Capacity",
+                                        value = "${course.capacity}",
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    InfoCard(
+                                        title = "Level",
+                                        value = "${course.difficultyLevel}",
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    InfoCard(
+                                        title = "Type",
+                                        value = "${course.typeOfClass}",
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+
+                                Text(
+                                    text = "${relatedClasses.size} ${if (relatedClasses.size > 1) "Classes" else "Class"}",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(vertical = 16.dp)
+                                )
+
+                                if (relatedClasses.isEmpty()) {
+                                    Text(
+                                        text = "No related classes yet",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                } else {
+                                    LazyColumn(
+                                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        items(relatedClasses) { yogaClass ->
+                                            ClassCard(yogaClass = yogaClass)
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                        }
+                                    }
+                                }
+                            } ?: run {
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator()
+                                }
+                            }
                         }
 
-                        Text(
-                            text = "${relatedClasses.size} ${if (relatedClasses.size > 1) "Classes" else "Class"}",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(vertical = 16.dp)
-                        )
-
-                        if (relatedClasses.isEmpty()) {
-                            Text(
-                                text = "No related classes yet",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        } else {
-                            LazyColumn(
-                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                        // Add buttons at the bottom
+                        Surface(
+                            modifier = Modifier.align(Alignment.BottomCenter),
+                            color = Color.White
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
-                                items(relatedClasses) { yogaClass ->
-                                    ClassCard(yogaClass = yogaClass)
-                                    Spacer(modifier = Modifier.height(8.dp))
+                                Button(
+                                    onClick = { navController.navigate("edit_course/$courseId") },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(48.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFF4A635D)
+                                    ),
+                                    shape = RoundedCornerShape(4.dp)
+                                ) {
+                                    Text("Edit")
+                                }
+                                Button(
+                                    onClick = { showDeleteDialog = true },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(48.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFFE57373)
+                                    ),
+                                    shape = RoundedCornerShape(4.dp)
+                                ) {
+                                    Text("Delete")
                                 }
                             }
                         }
                     }
                 }
-
-                // Add buttons at the bottom
-                Surface(
-                    modifier = Modifier.align(Alignment.BottomCenter),
-                    color = Color.White
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        Button(
-                            onClick = { navController.navigate("edit_course/$courseId") },
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(48.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF4A635D)
-                            ),
-                            shape = RoundedCornerShape(4.dp)
-                        ) {
-                            Text("Edit")
-                        }
-                        Button(
-                            onClick = { showDeleteDialog = true },
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(48.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFFE57373)
-                            ),
-                            shape = RoundedCornerShape(4.dp)
-                        ) {
-                            Text("Delete")
-                        }
-                    }
-                }
             }
-
-
         }
     )
 
@@ -226,8 +246,8 @@ fun CourseDetailScreen(
                         }
                         Button(
                             onClick = {
-                                course?.let { 
-                                    courseViewModel.deleteCourseFromFirebase(it.id.toString())
+                                selectedCourse?.let { 
+                                    courseViewModel.deleteCourse(it)
                                 }
                                 showDeleteDialog = false
                                 navController.navigateUp()
