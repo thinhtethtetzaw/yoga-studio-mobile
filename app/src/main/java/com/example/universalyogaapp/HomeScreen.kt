@@ -272,6 +272,10 @@ fun Statistics(navController: NavController) {
     val viewModel: HomeViewModel = viewModel()
     val statistics by viewModel.statistics.collectAsState()
 
+    LaunchedEffect(Unit) {
+        viewModel.refreshStatistics()
+    }
+
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(4.dp)

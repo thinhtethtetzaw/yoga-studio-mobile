@@ -26,7 +26,16 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import com.example.universalyogaapp.components.CommonScaffold
 import com.example.universalyogaapp.viewmodels.ClassViewModel
-
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import androidx.compose.material.icons.filled.Sync
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,24 +44,71 @@ fun CoursesScreen(
     courseViewModel: CourseViewModel = viewModel(),
     classViewModel: ClassViewModel = viewModel()
 ) {
+    val context = LocalContext.current
     val courses by courseViewModel.firebaseCourses.collectAsState()
     val classes by classViewModel.classes.collectAsState()
+    val scope = rememberCoroutineScope()
+    
+    var isSyncing by remember { mutableStateOf(false) }
+    var showSyncError by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         courseViewModel.loadCoursesFromFirebase()
     }
 
-    LaunchedEffect(courses) {
-        println("Courses in screen: ${courses.size}")
-        courses.forEach { course ->
-            println("Course in screen: ${course.courseName}")
-        }
+    if (showSyncError) {
+        AlertDialog(
+            onDismissRequest = { showSyncError = false },
+            title = { Text("Sync Error") },
+            text = { Text("Please check your internet connection and try again.") },
+            confirmButton = {
+                TextButton(onClick = { showSyncError = false }) {
+                    Text("OK")
+                }
+            },
+            containerColor = Color.White
+        )
     }
 
     CommonScaffold(
         navController = navController,
         title = "Course",
         actions = {
+            IconButton(
+                onClick = {
+                    scope.launch {
+                        if (isNetworkAvailable(context)) {
+                            isSyncing = true
+                            try {
+                                courseViewModel.syncCourses()
+                            } catch (e: Exception) {
+                                showSyncError = true
+                            } finally {
+                                isSyncing = false
+                            }
+                        } else {
+                            showSyncError = true
+                        }
+                    }
+                },
+                enabled = !isSyncing
+            ) {
+                if (isSyncing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Sync,
+                        contentDescription = "Sync courses",
+                        tint = MaterialTheme.colorScheme.secondary
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.width(8.dp))
+            
             OutlinedButton(
                 onClick = { navController.navigate("create_course") },
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary),
@@ -101,6 +157,15 @@ fun CoursesScreen(
             }
         }
     }
+}
+
+private fun isNetworkAvailable(context: Context): Boolean {
+    val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    val network = connectivityManager.activeNetwork ?: return false
+    val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
+    
+    return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+           capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
 }
 
 @Composable

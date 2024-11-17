@@ -346,7 +346,7 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
 
         with(cursor) {
             while (moveToNext()) {
-                val id = getInt(getColumnIndexOrThrow(COLUMN_COURSE_ID))
+                val id = getLong(getColumnIndexOrThrow(COLUMN_COURSE_ID))
                 val courseName = getString(getColumnIndexOrThrow(COLUMN_COURSE_NAME))
                 val daysOfWeek = getString(getColumnIndexOrThrow("days_of_week"))
                 val timeOfCourse = getString(getColumnIndexOrThrow("time_of_course"))

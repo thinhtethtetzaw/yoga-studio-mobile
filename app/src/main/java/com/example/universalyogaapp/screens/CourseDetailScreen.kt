@@ -32,7 +32,7 @@ fun CourseDetailScreen(
     classViewModel: ClassViewModel = viewModel()
 ) {
     val courses by courseViewModel.firebaseCourses.collectAsState()
-    val course = courses.find { it.id == courseId.toInt() }
+    val course = courses.find { it.id == courseId }
     
     val classes by classViewModel.classes.collectAsState()
     var showDeleteDialog by remember { mutableStateOf(false) }

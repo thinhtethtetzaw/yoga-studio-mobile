@@ -1,15 +1,18 @@
 package com.example.universalyogaapp.viewmodels
 
-import androidx.lifecycle.ViewModel
-import com.google.firebase.database.DataSnapshot
-import com.google.firebase.database.DatabaseError
-import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.database.ValueEventListener
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.universalyogaapp.data.Statistics
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import com.example.universalyogaapp.data.Statistics
+import kotlinx.coroutines.launch
+import com.google.firebase.firestore.FirebaseFirestore
+import com.example.universalyogaapp.DatabaseHelper
 
-class HomeViewModel : ViewModel() {
+class HomeViewModel(application: Application) : AndroidViewModel(application) {
+    private val dbHelper = DatabaseHelper(application)
+    private val firestore = FirebaseFirestore.getInstance()
     private val _statistics = MutableStateFlow(Statistics(0, 0, 0, 0))
     val statistics: StateFlow<Statistics> = _statistics
 
@@ -18,65 +21,68 @@ class HomeViewModel : ViewModel() {
     }
 
     private fun loadStatistics() {
-        val database = FirebaseDatabase.getInstance()
-        
-        // Load bookings count
-        database.getReference("bookings").addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                var totalBookings = 0
-                snapshot.children.forEach { userSnapshot ->
-                    totalBookings += userSnapshot.childrenCount.toInt()
+        viewModelScope.launch {
+            try {
+                // Get courses count from Firestore
+                firestore.collection("courses").get()
+                    .addOnSuccessListener { coursesSnapshot ->
+                        val coursesCount = coursesSnapshot.size()
+
+                        // Get instructors count
+                        val instructors = dbHelper.getAllInstructors()
+                        val instructorsCount = instructors.size
+
+                        // Get classes count
+                        val classes = dbHelper.getAllClasses()
+                        val classesCount = classes.size
+
+                        // Get bookings count (if you have a bookings collection)
+                        firestore.collection("bookings").get()
+                            .addOnSuccessListener { bookingsSnapshot ->
+                                val bookingsCount = bookingsSnapshot.size()
+
+                                // Update statistics with actual counts
+                                viewModelScope.launch {
+                                    _statistics.emit(
+                                        Statistics(
+                                            coursesCount = coursesCount,
+                                            instructorsCount = instructorsCount,
+                                            classesCount = classesCount,
+                                            bookingsCount = bookingsCount
+                                        )
+                                    )
+                                }
+                            }
+                            .addOnFailureListener {
+                                // If bookings fetch fails, update with other statistics
+                                viewModelScope.launch {
+                                    _statistics.emit(
+                                        Statistics(
+                                            coursesCount = coursesCount,
+                                            instructorsCount = instructorsCount,
+                                            classesCount = classesCount,
+                                            bookingsCount = 0
+                                        )
+                                    )
+                                }
+                            }
+                    }
+                    .addOnFailureListener {
+                        // If courses fetch fails, emit zeros
+                        viewModelScope.launch {
+                            _statistics.emit(Statistics(0, 0, 0, 0))
+                        }
+                    }
+            } catch (e: Exception) {
+                // If any error occurs, emit zeros
+                viewModelScope.launch {
+                    _statistics.emit(Statistics(0, 0, 0, 0))
                 }
-                updateStatistics { it.copy(bookingsCount = totalBookings) }
             }
-
-            override fun onCancelled(error: DatabaseError) {
-                // Handle error
-            }
-        })
-
-        // Load courses count
-        database.getReference("courses").addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val coursesCount = snapshot.childrenCount.toInt()
-                updateStatistics { it.copy(coursesCount = coursesCount) }
-            }
-
-            override fun onCancelled(error: DatabaseError) {
-                // Handle error
-            }
-        })
-
-        // Load instructors count
-        database.getReference("instructors").addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val instructorsCount = snapshot.childrenCount.toInt()
-                updateStatistics { it.copy(instructorsCount = instructorsCount) }
-            }
-
-            override fun onCancelled(error: DatabaseError) {
-                // Handle error
-            }
-        })
-
-        // Load classes count - Updated to count actual class entries
-        database.getReference("classes").addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                var totalClasses = 0
-                snapshot.children.forEach { classSnapshot ->
-                    // Each direct child under "classes" is a class entry
-                    totalClasses++
-                }
-                updateStatistics { it.copy(classesCount = totalClasses) }
-            }
-
-            override fun onCancelled(error: DatabaseError) {
-                // Handle error
-            }
-        })
+        }
     }
 
-    private fun updateStatistics(update: (Statistics) -> Statistics) {
-        _statistics.value = update(_statistics.value)
+    fun refreshStatistics() {
+        loadStatistics()
     }
 } 

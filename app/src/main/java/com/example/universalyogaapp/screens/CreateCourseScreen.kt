@@ -47,7 +47,7 @@ fun CreateCourseFormContent(
     initialType: String = "",
     initialPricePerClass: String = "",
     initialDescription: String = "",
-    existingCourseId: Int = 0
+    existingCourseId: Long = 0L
 ) {
     var courseName by remember(initialCourseName) { mutableStateOf(initialCourseName) }
     var selectedDays by remember(initialSelectedDays) { mutableStateOf(initialSelectedDays) }
@@ -497,7 +497,7 @@ fun CreateCourseFormContent(
                     onClick = {
                         if (validateInputs()) {
                             val course = Course(
-                                id = if (isEditing) existingCourseId else 0,
+                                id = if (isEditing) existingCourseId else 0L,
                                 courseName = courseName,
                                 daysOfWeek = selectedDays.joinToString(","),
                                 timeOfCourse = "$fromTime - $toTime",

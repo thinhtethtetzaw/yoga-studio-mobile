@@ -10,7 +10,7 @@ import androidx.annotation.Keep
 @Keep
 data class Course(
     @PrimaryKey(autoGenerate = true)
-    val id: Int = 0,
+    val id: Long = 0L,
     val courseName: String = "",
     val daysOfWeek: String = "",
     val timeOfCourse: String = "",
@@ -22,7 +22,7 @@ data class Course(
     val difficultyLevel: String = ""
 ) {
     // Required empty constructor for Firebase
-    constructor() : this(0, "", "", "", 0, 0, 0.0, "", "", "")
+    constructor() : this(0L, "", "", "", 0, 0, 0.0, "", "", "")
 
     fun toMap(): Map<String, Any?> {
         return mapOf(
