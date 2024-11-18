@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -292,59 +293,62 @@ fun InstructorsScreen(navController: NavController) {
 
     CommonScaffold(
         navController = navController,
-        title = "Instructor"
+        title = "Instructor",
+        actions = {
+            // Sync Button
+            IconButton(
+                onClick = {
+                    isSyncing = true
+                    viewModel.syncWithFirebase { success ->
+                        isSyncing = false
+                        showSyncDialog = false
+                    }
+                },
+                enabled = !isSyncing,
+                modifier = Modifier.size(48.dp)
+            ) {
+                if (isSyncing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.secondary,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Sync,
+                        contentDescription = "Sync instructors",
+                        tint = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+
+            // Add Button
+            OutlinedButton(
+                onClick = { navController.navigate(Routes.CreateInstructor.route) },
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.primary
+                ),
+                modifier = Modifier.padding(end = 16.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary),
+                shape = RoundedCornerShape(6.dp)
+            ) {
+                Text("+ Add", color = MaterialTheme.colorScheme.secondary)
+            }
+        }
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Instructors",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.DarkGray
-                )
-                
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    OutlinedButton(
-                        onClick = { showSyncDialog = true },
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = MaterialTheme.colorScheme.primary
-                        ),
-                        border = BorderStroke(
-                            width = 1.dp,
-                            color = MaterialTheme.colorScheme.primary
-                        ),
-                        shape = MaterialTheme.shapes.small
-                    ) {
-                        Text("Sync", color = MaterialTheme.colorScheme.primary)
-                    }
-                    
-                    OutlinedButton(
-                        onClick = { navController.navigate(Routes.CreateInstructor.route) },
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = MaterialTheme.colorScheme.primary
-                        ),
-                        border = BorderStroke(
-                            width = 1.dp,
-                            color = MaterialTheme.colorScheme.secondary
-                        ),
-                        shape = MaterialTheme.shapes.small
-                    ) {
-                        Text("+ Add", color = MaterialTheme.colorScheme.secondary)
-                    }
-                }
-            }
+            Text(
+                text = "Instructors",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = Color.DarkGray,
+                modifier = Modifier.padding(16.dp)
+            )
 
             LazyColumn(
                 modifier = Modifier
