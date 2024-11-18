@@ -20,6 +20,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val courseViewModel = CourseViewModel(application)
     private val database = FirebaseDatabase.getInstance()
     private val bookingsRef = database.getReference("bookings")
+    private val instructorsRef = database.getReference("instructors")
     private val _statistics = MutableStateFlow(Statistics(0, 0, 0, 0))
     val statistics: StateFlow<Statistics> = _statistics
 
@@ -30,22 +31,42 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private fun loadStatistics() {
         viewModelScope.launch {
             try {
-                // Get booking count from Firebase Realtime Database
+                // Get booking and instructor counts from Firebase
                 bookingsRef.addListenerForSingleValueEvent(object : ValueEventListener {
                     override fun onDataChange(snapshot: DataSnapshot) {
-                        val bookingsCount = snapshot.childrenCount.toInt()
-                        Log.d("HomeViewModel", "Loaded bookings: $bookingsCount")
-                        
-                        // Update statistics with the booking count
-                        viewModelScope.launch {
-                            updateStatisticsWithBookings(bookingsCount)
+                        var totalBookings = 0
+                        // Count all booking objects inside each booking node
+                        snapshot.children.forEach { bookingNode ->
+                            bookingNode.children.forEach { _ ->
+                                totalBookings++
+                            }
                         }
+                        Log.d("HomeViewModel", "Loaded bookings: $totalBookings")
+                        
+                        // After getting bookings, get instructors
+                        instructorsRef.addListenerForSingleValueEvent(object : ValueEventListener {
+                            override fun onDataChange(instructorsSnapshot: DataSnapshot) {
+                                val instructorsCount = instructorsSnapshot.childrenCount.toInt()
+                                Log.d("HomeViewModel", "Loaded instructors: $instructorsCount")
+                                
+                                viewModelScope.launch {
+                                    updateStatistics(totalBookings, instructorsCount)
+                                }
+                            }
+
+                            override fun onCancelled(error: DatabaseError) {
+                                Log.e("HomeViewModel", "Error loading instructors", error.toException())
+                                viewModelScope.launch {
+                                    updateStatistics(totalBookings, 0)
+                                }
+                            }
+                        })
                     }
 
                     override fun onCancelled(error: DatabaseError) {
                         Log.e("HomeViewModel", "Error loading bookings", error.toException())
                         viewModelScope.launch {
-                            updateStatisticsWithBookings(0)
+                            updateStatistics(0, 0)
                         }
                     }
                 })
@@ -57,13 +78,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    private suspend fun updateStatisticsWithBookings(bookingsCount: Int) {
+    private suspend fun updateStatistics(bookingsCount: Int, instructorsCount: Int) {
         try {
             courseViewModel.firebaseCourses.collect { courses ->
                 Log.d("HomeViewModel", "Loaded courses: ${courses.size}")
-                
-                val instructors = dbHelper.getAllInstructors()
-                Log.d("HomeViewModel", "Loaded instructors: ${instructors.size}")
                 
                 val classes = dbHelper.getAllClasses()
                 Log.d("HomeViewModel", "Loaded classes: ${classes.size}")
@@ -72,14 +90,14 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 _statistics.emit(
                     Statistics(
                         coursesCount = courses.size,
-                        instructorsCount = instructors.size,
+                        instructorsCount = instructorsCount,
                         classesCount = classes.size,
                         bookingsCount = bookingsCount
                     )
                 )
             }
         } catch (e: Exception) {
-            Log.e("HomeViewModel", "Error updating statistics with bookings", e)
+            Log.e("HomeViewModel", "Error updating statistics", e)
         }
     }
 
