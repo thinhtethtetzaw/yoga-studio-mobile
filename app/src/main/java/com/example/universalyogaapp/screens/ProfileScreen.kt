@@ -113,13 +113,11 @@ fun ProfileScreen(navController: NavController) {
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
-                    .offset(y = (-50).dp),
+                    .padding(16.dp),
                 shape = RoundedCornerShape(6.dp),
                 color = Color.White,
-                shadowElevation = 2.dp
             ) {
-                Column(modifier = Modifier.padding(10.dp, 20.dp)) {
+                Column(modifier = Modifier.padding(10.dp)) {
                     MenuListItem(
                         icon = Icons.Default.Group,
                         title = "Create New Admin Account",
@@ -128,6 +126,14 @@ fun ProfileScreen(navController: NavController) {
                     )
                 }
             }
+            // Version Text
+            Text(
+                text = "Version 1.0.0",
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally),
+                color = Color.Gray,
+                fontSize = 12.sp
+            )
 
             // Logout Button
             Button(
@@ -139,23 +145,14 @@ fun ProfileScreen(navController: NavController) {
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp).offset(y = (-20).dp),
+                    .padding(16.dp, 0.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
+                    containerColor = Color(0xFFd1586c)
                 ),
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Text("Logout")
             }
-
-            // Version Text
-            Text(
-                text = "Version 1.0.0",
-                modifier = Modifier
-                    .align(Alignment.CenterHorizontally).offset(y = (-130).dp),
-                color = Color.Gray,
-                fontSize = 12.sp
-            )
         }
     }
 }
