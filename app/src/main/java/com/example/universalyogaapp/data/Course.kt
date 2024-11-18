@@ -24,8 +24,8 @@ data class Course(
     // Required empty constructor for Firebase
     constructor() : this(0L, "", "", "", 0, 0, 0.0, "", "", "")
 
-    fun toMap(): Map<String, Any?> {
-        return mapOf(
+    fun toMap(): HashMap<String, Any> {
+        return hashMapOf(
             "id" to id,
             "courseName" to courseName,
             "daysOfWeek" to daysOfWeek,

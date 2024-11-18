@@ -45,9 +45,11 @@ class CourseViewModel(application: Application) : AndroidViewModel(application) 
     fun insertCourse(course: Course) {
         viewModelScope.launch {
             try {
-                // Insert into local database only
+                // Insert into local database and get the new ID
                 val id = repository.insertCourse(course)
                 val courseWithId = course.copy(id = id)
+                
+                Log.d("CourseViewModel", "Course inserted locally with ID: $id")
                 
                 // Add to local-only courses for later sync
                 val localCourses = _localOnlyCourses.value.toMutableList()
@@ -57,14 +59,18 @@ class CourseViewModel(application: Application) : AndroidViewModel(application) 
                 // Mark that we have local changes
                 _localChanges.emit(true)
                 
-                // Update the courses list for UI
+                // Update the courses list for UI immediately
                 val currentCourses = _firebaseCourses.value.toMutableList()
                 currentCourses.add(courseWithId)
                 _firebaseCourses.emit(currentCourses)
                 
-                Log.d("CourseViewModel", "Course added locally")
+                // Reload courses to update UI
+                loadCourses()
+                
+                Log.d("CourseViewModel", "Course saved locally and marked for sync. LocalOnlyCourses size: ${localCourses.size}")
             } catch (e: Exception) {
                 Log.e("CourseViewModel", "Error inserting course", e)
+                throw e
             }
         }
     }
@@ -128,22 +134,22 @@ class CourseViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    fun addCourseToFirebase(course: Course, onComplete: (Boolean) -> Unit = {}) {
-        try {
-            val firebaseRef = FirebaseDatabase.getInstance().getReference("courses")
-            val courseRef = firebaseRef.child(course.id.toString())
-            courseRef.setValue(course.toMap())
-                .addOnSuccessListener {
-                    Log.d("CourseViewModel", "Successfully added course to Firebase")
-                    onComplete(true)
-                }
-                .addOnFailureListener { e ->
-                    Log.e("CourseViewModel", "Error adding course to Firebase", e)
-                    onComplete(false)
-                }
-        } catch (e: Exception) {
-            Log.e("CourseViewModel", "Exception while adding course to Firebase", e)
-            onComplete(false)
+    private fun addCourseToFirebase(course: Course, onComplete: (Boolean) -> Unit = {}) {
+        viewModelScope.launch {
+            try {
+                val firebaseRef = FirebaseDatabase.getInstance().getReference("courses")
+                val courseRef = firebaseRef.child(course.id.toString())
+                
+                // Use the complete toMap() function that includes all fields
+                val courseMap = course.toMap()
+                
+                Tasks.await(courseRef.setValue(courseMap))
+                Log.d("CourseViewModel", "Successfully added course to Firebase with data: $courseMap")
+                onComplete(true)
+            } catch (e: Exception) {
+                Log.e("CourseViewModel", "Error adding course to Firebase", e)
+                onComplete(false)
+            }
         }
     }
 
@@ -219,64 +225,21 @@ class CourseViewModel(application: Application) : AndroidViewModel(application) 
             }
     }
 
-    // suspend fun syncClasses() {
-    //     try {
-    //         val firebaseRef = FirebaseDatabase.getInstance().getReference("classes")
-            
-    //         // First, handle deletions
-    //         val deletedIds = _deletedClassIds.value
-    //         Log.d("ClassViewModel", "Syncing deletions: ${deletedIds.size} classes to delete")
-            
-    //         deletedIds.forEach { id ->
-    //             try {
-    //                 // Remove from Firebase
-    //                 val deleteRef = firebaseRef.child(id.toString())
-    //                 Tasks.await(deleteRef.removeValue())
-    //                 Log.d("ClassViewModel", "Successfully deleted class $id from Firebase")
-    //             } catch (e: Exception) {
-    //                 Log.e("ClassViewModel", "Failed to delete class $id from Firebase", e)
-    //             }
-    //         }
-            
-    //         // Clear deleted IDs after successful sync
-    //         _deletedClassIds.emit(emptySet())
-
-    //         // Then sync remaining local classes
-    //         val localClasses = dbHelper.getAllClasses()
-    //         Log.d("ClassViewModel", "Syncing ${localClasses.size} local classes to Firebase")
-
-    //         // Upload local classes to Firebase
-    //         localClasses.forEach { yogaClass ->
-    //             try {
-    //                 val classRef = firebaseRef.child(yogaClass.id.toString())
-    //                 Tasks.await(classRef.setValue(yogaClass.toMap()))
-    //                 Log.d("ClassViewModel", "Successfully synced class ${yogaClass.id} to Firebase")
-    //             } catch (e: Exception) {
-    //                 Log.e("ClassViewModel", "Failed to sync class ${yogaClass.id}", e)
-    //             }
-    //         }
-
-    //         // Clear local-only changes after successful sync
-    //         _localOnlyClasses.emit(emptyList())
-            
-    //         Log.d("ClassViewModel", "Sync completed successfully")
-    //     } catch (e: Exception) {
-    //         Log.e("ClassViewModel", "Error during sync operation", e)
-    //         throw e
-    //     }
-    // }
-
     suspend fun syncCourses() {
+        if (!isOnline()) {
+            Log.d("CourseViewModel", "No internet connection, skipping sync")
+            return
+        }
+
         try {
             val firebaseRef = FirebaseDatabase.getInstance().getReference("courses")
             
-            // First, handle deletions
+            // Handle deletions first
             val deletedIds = _deletedCourseIds.value
             Log.d("CourseViewModel", "Syncing deletions: ${deletedIds.size} courses to delete")
             
             deletedIds.forEach { id ->
                 try {
-                    // Remove from Firebase
                     val deleteRef = firebaseRef.child(id.toString())
                     Tasks.await(deleteRef.removeValue())
                     Log.d("CourseViewModel", "Successfully deleted course $id from Firebase")
@@ -288,18 +251,26 @@ class CourseViewModel(application: Application) : AndroidViewModel(application) 
             // Clear deleted IDs after successful sync
             _deletedCourseIds.emit(emptySet())
 
-            // Then sync remaining local courses
-            val localCourses = repository.getAllCourses().first()
-            Log.d("CourseViewModel", "Syncing ${localCourses.size} local courses to Firebase")
+            // Get all courses that need to be synced (both new and updated courses)
+            val coursesToSync = _localOnlyCourses.value
+            Log.d("CourseViewModel", "Found ${coursesToSync.size} courses to sync")
 
-            // Upload local courses to Firebase
-            localCourses.forEach { course ->
+            // Also get all local courses to ensure we don't miss any
+            val allLocalCourses = repository.getAllCourses().first()
+            val combinedCourses = (coursesToSync + allLocalCourses).distinctBy { it.id }
+            
+            Log.d("CourseViewModel", "Syncing total of ${combinedCourses.size} courses to Firebase")
+
+            combinedCourses.forEach { course ->
                 try {
                     val courseRef = firebaseRef.child(course.id.toString())
-                    Tasks.await(courseRef.setValue(course.toMap()))
-                    Log.d("CourseViewModel", "Successfully synced course ${course.id} to Firebase")
+                    val courseMap = course.toMap()
+                    Tasks.await(courseRef.setValue(courseMap))
+                    Log.d("CourseViewModel", "Successfully synced course ${course.id} to Firebase with data: $courseMap")
                 } catch (e: Exception) {
                     Log.e("CourseViewModel", "Failed to sync course ${course.id}", e)
+                    // Continue with other courses even if one fails
+                    Log.e("CourseViewModel", "Continuing with remaining courses")
                 }
             }
 
@@ -307,10 +278,10 @@ class CourseViewModel(application: Application) : AndroidViewModel(application) 
             _localOnlyCourses.emit(emptyList())
             _localChanges.emit(false)
             
-            Log.d("CourseViewModel", "Sync completed successfully")
-            
             // Reload courses to update UI
             loadCourses()
+            
+            Log.d("CourseViewModel", "Sync completed successfully")
         } catch (e: Exception) {
             Log.e("CourseViewModel", "Error during sync operation", e)
             throw e
