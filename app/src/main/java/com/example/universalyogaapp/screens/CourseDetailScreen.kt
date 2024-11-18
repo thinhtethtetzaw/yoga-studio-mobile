@@ -340,14 +340,6 @@ private fun ClassCard(yogaClass: YogaClass) {
                 }
             }
             
-            IconButton(
-                onClick = { /* Handle more options */ }
-            ) {
-                Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = "More options"
-                )
-            }
         }
     }
 }
