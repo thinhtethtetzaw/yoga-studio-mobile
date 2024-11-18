@@ -30,12 +30,15 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import android.util.Log
+import com.example.universalyogaapp.components.NetworkStatusBar
+import kotlinx.coroutines.Job
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,6 +51,8 @@ fun CoursesScreen(
     
     var isSyncing by remember { mutableStateOf(false) }
     var showSyncError by remember { mutableStateOf(false) }
+    var showNetworkStatus by remember { mutableStateOf(false) }
+    var networkStatusTimer: Job? by remember { mutableStateOf(null) }
     
     LaunchedEffect(Unit) {
         courseViewModel.loadCourses()
@@ -63,12 +68,17 @@ fun CoursesScreen(
             // Existing Sync Button
             IconButton(
                 onClick = {
-                    scope.launch {
+                    showNetworkStatus = true
+                    networkStatusTimer?.cancel()
+                    networkStatusTimer = scope.launch {
                         if (isNetworkAvailable(context)) {
                             isSyncing = true
                             try {
                                 courseViewModel.syncCourses()
                                 showSyncError = false
+                                // Hide network status after successful sync
+                                delay(2000) // Show for 2 seconds
+                                showNetworkStatus = false
                             } catch (e: Exception) {
                                 Log.e("CoursesScreen", "Sync error", e)
                                 showSyncError = true
@@ -77,10 +87,12 @@ fun CoursesScreen(
                             }
                         } else {
                             showSyncError = true
+                            // Keep network status visible for error state
+                            delay(3000) // Show for 3 seconds
+                            showNetworkStatus = false
                         }
                     }
                 },
-                enabled = !isSyncing,
                 modifier = Modifier.size(48.dp)
             ) {
                 if (isSyncing) {
@@ -93,7 +105,10 @@ fun CoursesScreen(
                     Icon(
                         imageVector = Icons.Default.Sync,
                         contentDescription = "Sync courses",
-                        tint = MaterialTheme.colorScheme.secondary,
+                        tint = if (isNetworkAvailable(context)) 
+                            MaterialTheme.colorScheme.secondary 
+                        else 
+                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f),
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -113,25 +128,34 @@ fun CoursesScreen(
             }
         },
         content = { padding ->
-            Box(
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
             ) {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(coursesWithCount) { courseWithCount ->
-                        CourseCard(
-                            courseWithCount = courseWithCount,
-                            onClick = {
-                                navController.navigate("course_detail/${courseWithCount.course.id}")
-                            }
-                        )
+                // Network status bar - only shows when showNetworkStatus is true
+                NetworkStatusBar(
+                    isOnline = isNetworkAvailable(context),
+                    visible = showNetworkStatus
+                )
+
+                Box(modifier = Modifier.fillMaxSize()) {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(coursesWithCount) { courseWithCount ->
+                            CourseCard(
+                                courseWithCount = courseWithCount,
+                                onClick = {
+                                    navController.navigate("course_detail/${courseWithCount.course.id}")
+                                }
+                            )
+                        }
                     }
+
                 }
             }
         }

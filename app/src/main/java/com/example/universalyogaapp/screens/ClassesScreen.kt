@@ -41,7 +41,11 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import android.util.Log
+import com.example.universalyogaapp.components.NetworkStatusBar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,7 +63,8 @@ fun ClassesScreen(navController: NavController) {
     var selectedDate by remember { mutableStateOf("") }
     var courseExpanded by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
-
+    var showNetworkStatus by remember { mutableStateOf(false) }
+    var networkStatusTimer: Job? by remember { mutableStateOf(null) }
 
     LaunchedEffect(Unit) {
         classViewModel.loadClasses()
@@ -67,19 +72,6 @@ fun ClassesScreen(navController: NavController) {
         courseViewModel.loadCourses()
     }
 
-    if (showSyncError) {
-        AlertDialog(
-            onDismissRequest = { showSyncError = false },
-            title = { Text("Sync Error") },
-            text = { Text("Please check your internet connection and try again.") },
-            confirmButton = {
-                TextButton(onClick = { showSyncError = false }) {
-                    Text("OK")
-                }
-            },
-            containerColor = Color.White
-        )
-    }
 
     CommonScaffold(
         navController = navController,
@@ -87,22 +79,31 @@ fun ClassesScreen(navController: NavController) {
         actions = {
             IconButton(
                 onClick = {
-                    scope.launch {
+                    showNetworkStatus = true
+                    networkStatusTimer?.cancel()
+                    networkStatusTimer = scope.launch {
                         if (isNetworkAvailable(context)) {
                             isSyncing = true
                             try {
                                 classViewModel.syncClasses()
+                                showSyncError = false
+                                // Hide network status after successful sync
+                                delay(2000) // Show for 2 seconds
+                                showNetworkStatus = false
                             } catch (e: Exception) {
+                                Log.e("ClassesScreen", "Sync error", e)
                                 showSyncError = true
                             } finally {
                                 isSyncing = false
                             }
                         } else {
                             showSyncError = true
+                            // Keep network status visible for error state
+                            delay(3000) // Show for 3 seconds
+                            showNetworkStatus = false
                         }
                     }
                 },
-                enabled = !isSyncing,
                 modifier = Modifier.size(48.dp)
             ) {
                 if (isSyncing) {
@@ -115,7 +116,10 @@ fun ClassesScreen(navController: NavController) {
                     Icon(
                         imageVector = Icons.Default.Sync,
                         contentDescription = "Sync classes",
-                        tint = MaterialTheme.colorScheme.secondary,
+                        tint = if (isNetworkAvailable(context)) 
+                            MaterialTheme.colorScheme.secondary 
+                        else 
+                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f),
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -145,6 +149,12 @@ fun ClassesScreen(navController: NavController) {
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            // Add NetworkStatusBar at the top of the Column
+            NetworkStatusBar(
+                isOnline = isNetworkAvailable(context),
+                visible = showNetworkStatus
+            )
+
             // Search and Filter Section
             Card(
                 modifier = Modifier

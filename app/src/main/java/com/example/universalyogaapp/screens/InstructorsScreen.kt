@@ -1,5 +1,8 @@
 package com.example.universalyogaapp.screens
 
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -20,6 +23,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,6 +40,11 @@ import com.example.universalyogaapp.Routes
 import com.example.universalyogaapp.components.CommonScaffold
 import com.example.universalyogaapp.models.Instructor
 import com.example.universalyogaapp.viewmodels.InstructorViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import android.util.Log
+import com.example.universalyogaapp.components.NetworkStatusBar
 
 @Composable
 fun InstructorsScreen(navController: NavController) {
@@ -61,6 +70,10 @@ fun InstructorsScreen(navController: NavController) {
 
     var showSyncDialog by remember { mutableStateOf(false) }
     var isSyncing by remember { mutableStateOf(false) }
+
+    var showNetworkStatus by remember { mutableStateOf(false) }
+    var networkStatusTimer: Job? by remember { mutableStateOf(null) }
+    val scope = rememberCoroutineScope()
 
     if (showDeleteDialog) {
         AlertDialog(
@@ -244,53 +257,6 @@ fun InstructorsScreen(navController: NavController) {
         )
     }
 
-    if (showSyncDialog) {
-        AlertDialog(
-            onDismissRequest = { 
-                if (!isSyncing) showSyncDialog = false 
-            },
-            title = { Text("Sync with Server") },
-            text = { 
-                if (isSyncing) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            strokeWidth = 2.dp
-                        )
-                        Text("Syncing...")
-                    }
-                } else {
-                    Text("Do you want to sync instructors with the server?")
-                }
-            },
-            confirmButton = {
-                if (!isSyncing) {
-                    TextButton(
-                        onClick = {
-                            isSyncing = true
-                            viewModel.syncWithFirebase { success ->
-                                isSyncing = false
-                                showSyncDialog = false
-                            }
-                        }
-                    ) {
-                        Text("Sync")
-                    }
-                }
-            },
-            dismissButton = {
-                if (!isSyncing) {
-                    TextButton(onClick = { showSyncDialog = false }) {
-                        Text("Cancel")
-                    }
-                }
-            }
-        )
-    }
-
     CommonScaffold(
         navController = navController,
         title = "Instructor",
@@ -298,13 +264,33 @@ fun InstructorsScreen(navController: NavController) {
             // Sync Button
             IconButton(
                 onClick = {
-                    isSyncing = true
-                    viewModel.syncWithFirebase { success ->
-                        isSyncing = false
-                        showSyncDialog = false
+                    showNetworkStatus = true
+                    networkStatusTimer?.cancel()
+                    networkStatusTimer = scope.launch {
+                        if (isNetworkAvailable(context)) {
+                            isSyncing = true
+                            try {
+                                viewModel.syncWithFirebase { success ->
+                                    isSyncing = false
+                                    showSyncDialog = false
+                                }
+                                // Hide network status after successful sync
+                                delay(2000) // Show for 2 seconds
+                                showNetworkStatus = false
+                            } catch (e: Exception) {
+                                Log.e("InstructorsScreen", "Sync error", e)
+                                showSyncDialog = true
+                            } finally {
+                                isSyncing = false
+                            }
+                        } else {
+                            showSyncDialog = true
+                            // Keep network status visible for error state
+                            delay(3000) // Show for 3 seconds
+                            showNetworkStatus = false
+                        }
                     }
                 },
-                enabled = !isSyncing,
                 modifier = Modifier.size(48.dp)
             ) {
                 if (isSyncing) {
@@ -317,7 +303,10 @@ fun InstructorsScreen(navController: NavController) {
                     Icon(
                         imageVector = Icons.Default.Sync,
                         contentDescription = "Sync instructors",
-                        tint = MaterialTheme.colorScheme.secondary,
+                        tint = if (isNetworkAvailable(context)) 
+                            MaterialTheme.colorScheme.secondary 
+                        else 
+                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f),
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -342,6 +331,11 @@ fun InstructorsScreen(navController: NavController) {
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            NetworkStatusBar(
+                isOnline = isNetworkAvailable(context),
+                visible = showNetworkStatus
+            )
+
             Text(
                 text = "Instructors",
                 style = MaterialTheme.typography.headlineMedium,
@@ -485,4 +479,13 @@ fun InstructorsScreen(navController: NavController) {
             }
         }
     }
+}
+
+private fun isNetworkAvailable(context: Context): Boolean {
+    val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    val network = connectivityManager.activeNetwork ?: return false
+    val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
+    
+    return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+           capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
 }
