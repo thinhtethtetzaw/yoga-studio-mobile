@@ -25,101 +25,137 @@ class InstructorViewModel(application: Application) : AndroidViewModel(applicati
     private val instructorsRef: DatabaseReference = firebaseDatabase.getReference("instructors")
 
     init {
-        loadInstructors()
+        loadLocalInstructors()
     }
 
-    fun loadInstructors() {
-        instructorsRef.addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val instructorsList = mutableListOf<Instructor>()
-                for (instructorSnapshot in snapshot.children) {
-                    try {
-                        val id = instructorSnapshot.child("id").getValue(Long::class.java)?.toInt()
-                        val name = instructorSnapshot.child("name").getValue(String::class.java)
-                        val experience = instructorSnapshot.child("experience").getValue(String::class.java)
-                        
-                        if (id != null && name != null && experience != null) {
-                            instructorsList.add(Instructor(id, name, experience))
-                        }
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
-                }
-                
-                viewModelScope.launch {
-                    _instructors.emit(instructorsList)
-                }
-            }
-
-            override fun onCancelled(error: DatabaseError) {
-                error.toException().printStackTrace()
-            }
-        })
-    }
-
-    fun addInstructor(name: String, experience: String, onComplete: (Boolean) -> Unit) {
+    fun loadLocalInstructors() {
         viewModelScope.launch(Dispatchers.IO) {
-            // First add to SQLite
-            val localId = dbHelper.insertInstructor(name, experience)
-            
-            if (localId != -1L) {
-                // Create instructor data for Firebase
-                val instructorData = hashMapOf(
-                    "id" to localId,
-                    "name" to name,
-                    "experience" to experience,
-                    "timestamp" to ServerValue.TIMESTAMP
-                )
+            val localInstructors = dbHelper.getAllInstructors()
+            _instructors.emit(localInstructors)
+        }
+    }
 
-                // Add to Firebase
-                instructorsRef.child(localId.toString())
-                    .setValue(instructorData)
+    // Sync all local changes to Firebase
+    fun syncWithFirebase(onComplete: (Boolean) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                // Get all local instructors
+                val localInstructors = dbHelper.getAllInstructors()
+                
+                // Clear existing data in Firebase
+                instructorsRef.removeValue()
                     .addOnSuccessListener {
-                        viewModelScope.launch {
-                            loadInstructors()
-                            onComplete(true)
+                        // Upload all local instructors to Firebase
+                        var successCount = 0
+                        val totalCount = localInstructors.size
+                        
+                        if (totalCount == 0) {
+                            viewModelScope.launch {
+                                withContext(Dispatchers.Main) {
+                                    onComplete(true)
+                                }
+                            }
+                            return@addOnSuccessListener
+                        }
+
+                        localInstructors.forEach { instructor ->
+                            val instructorData = hashMapOf(
+                                "id" to instructor.id,
+                                "name" to instructor.name,
+                                "experience" to instructor.experience,
+                                "timestamp" to ServerValue.TIMESTAMP
+                            )
+                            
+                            instructorsRef.child(instructor.id.toString())
+                                .setValue(instructorData)
+                                .addOnSuccessListener {
+                                    successCount++
+                                    if (successCount == totalCount) {
+                                        viewModelScope.launch {
+                                            withContext(Dispatchers.Main) {
+                                                onComplete(true)
+                                            }
+                                        }
+                                    }
+                                }
+                                .addOnFailureListener {
+                                    viewModelScope.launch {
+                                        withContext(Dispatchers.Main) {
+                                            onComplete(false)
+                                        }
+                                    }
+                                }
                         }
                     }
-                    .addOnFailureListener { e ->
-                        onComplete(false)
+                    .addOnFailureListener {
+                        viewModelScope.launch {
+                            withContext(Dispatchers.Main) {
+                                onComplete(false)
+                            }
+                        }
                     }
-            } else {
-                onComplete(false)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                withContext(Dispatchers.Main) {
+                    onComplete(false)
+                }
             }
         }
     }
 
-    fun getInstructorById(id: Int): Instructor? {
-        return dbHelper.getInstructorById(id)
+    fun addInstructor(name: String, experience: String, onComplete: (Boolean) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                // Add to local database
+                val localId = dbHelper.insertInstructor(name, experience)
+                if (localId != -1L) {
+                    // Get the newly created instructor and add it to the current list
+                    val currentList = _instructors.value.toMutableList()
+                    val newInstructor = Instructor(localId.toInt(), name, experience)
+                    currentList.add(newInstructor)
+                    
+                    // Update the UI immediately
+                    _instructors.emit(currentList)
+                    
+                    withContext(Dispatchers.Main) {
+                        onComplete(true)
+                    }
+                } else {
+                    withContext(Dispatchers.Main) {
+                        onComplete(false)
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    onComplete(false)
+                }
+            }
+        }
     }
 
     fun updateInstructor(instructor: Instructor) {
         viewModelScope.launch(Dispatchers.IO) {
-            dbHelper.updateInstructor(instructor)
-            
-            // Update in Firebase
-            val instructorData = hashMapOf(
-                "id" to instructor.id,
-                "name" to instructor.name,
-                "experience" to instructor.experience,
-                "lastUpdated" to ServerValue.TIMESTAMP
-            )
-            
-            instructorsRef.child(instructor.id.toString())
-                .updateChildren(instructorData as Map<String, Any>)
-            
-            loadInstructors()
+            try {
+                // Update local database
+                dbHelper.updateInstructor(instructor)
+                // Refresh UI with local data
+                loadLocalInstructors()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 
     fun deleteInstructor(id: Int) {
         viewModelScope.launch(Dispatchers.IO) {
-            dbHelper.deleteInstructor(id)
-            
-            // Delete from Firebase
-            instructorsRef.child(id.toString()).removeValue()
-            
-            loadInstructors()
+            try {
+                // Delete from local database
+                dbHelper.deleteInstructor(id)
+                // Refresh UI with local data
+                loadLocalInstructors()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 } 

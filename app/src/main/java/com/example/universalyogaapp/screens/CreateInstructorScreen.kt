@@ -24,31 +24,27 @@ fun CreateInstructorScreen(navController: NavController) {
     
     var name by remember { mutableStateOf("") }
     var experience by remember { mutableStateOf("") }
+    var showError by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) }
 
     CommonScaffold(
         navController = navController,
-        title = "Instructor"
+        title = "Create Instructor"
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(
-                text = "Create Instructor",
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-            
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
-                label = { Text("Instructor Name") },
-                modifier = Modifier.fillMaxWidth()
+                label = { Text("Name") },
+                modifier = Modifier.fillMaxWidth(),
+                isError = showError && name.isBlank()
             )
-            
-            Spacer(modifier = Modifier.height(8.dp))
             
             OutlinedTextField(
                 value = experience,
@@ -59,33 +55,47 @@ fun CreateInstructorScreen(navController: NavController) {
                 },
                 label = { Text("Experience (years)") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                isError = showError && experience.isBlank()
             )
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
+
+            if (showError) {
+                Text(
+                    text = "Please fill all fields",
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(start = 8.dp)
+                )
+            }
+
             Button(
                 onClick = {
-                    if (name.isNotBlank() && experience.isNotBlank()) {
-                        viewModel.addInstructor(name, experience) { isSuccessful ->
-                            if (isSuccessful) {
-                                navController.navigateUp()
-                            } else {
-                                // Handle failure
-                                // Show error message
-                            }
+                    if (name.isBlank() || experience.isBlank()) {
+                        showError = true
+                        return@Button
+                    }
+                    
+                    isLoading = true
+                    viewModel.addInstructor(name, experience) { success ->
+                        isLoading = false
+                        if (success) {
+                            navController.popBackStack()
                         }
                     }
                 },
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.extraSmall,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = Color.White
-                ),
-                enabled = name.isNotBlank() && experience.isNotBlank()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                enabled = !isLoading
             ) {
-                Text("Create Instructor")
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text("Create Instructor")
+                }
             }
         }
     }

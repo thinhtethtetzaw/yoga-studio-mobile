@@ -46,7 +46,7 @@ fun InstructorsScreen(navController: NavController) {
     val instructors by viewModel.instructors.collectAsState(initial = emptyList())
 
     LaunchedEffect(Unit) {
-        viewModel.loadInstructors()
+        viewModel.loadLocalInstructors()
     }
 
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -57,6 +57,9 @@ fun InstructorsScreen(navController: NavController) {
     var editName by remember { mutableStateOf("") }
     var editExperience by remember { mutableStateOf("") }
     var showEditError by remember { mutableStateOf(false) }
+
+    var showSyncDialog by remember { mutableStateOf(false) }
+    var isSyncing by remember { mutableStateOf(false) }
 
     if (showDeleteDialog) {
         AlertDialog(
@@ -240,6 +243,53 @@ fun InstructorsScreen(navController: NavController) {
         )
     }
 
+    if (showSyncDialog) {
+        AlertDialog(
+            onDismissRequest = { 
+                if (!isSyncing) showSyncDialog = false 
+            },
+            title = { Text("Sync with Server") },
+            text = { 
+                if (isSyncing) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            strokeWidth = 2.dp
+                        )
+                        Text("Syncing...")
+                    }
+                } else {
+                    Text("Do you want to sync instructors with the server?")
+                }
+            },
+            confirmButton = {
+                if (!isSyncing) {
+                    TextButton(
+                        onClick = {
+                            isSyncing = true
+                            viewModel.syncWithFirebase { success ->
+                                isSyncing = false
+                                showSyncDialog = false
+                            }
+                        }
+                    ) {
+                        Text("Sync")
+                    }
+                }
+            },
+            dismissButton = {
+                if (!isSyncing) {
+                    TextButton(onClick = { showSyncDialog = false }) {
+                        Text("Cancel")
+                    }
+                }
+            }
+        )
+    }
+
     CommonScaffold(
         navController = navController,
         title = "Instructor"
@@ -258,21 +308,41 @@ fun InstructorsScreen(navController: NavController) {
             ) {
                 Text(
                     text = "Instructors",
-                    style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = Color.DarkGray
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.DarkGray
                 )
                 
-                OutlinedButton(
-                    onClick = { navController.navigate(Routes.CreateInstructor.route) },
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = MaterialTheme.colorScheme.primary
-                    ),
-                    border = BorderStroke(
-                        width = 1.dp,
-                        color = MaterialTheme.colorScheme.secondary
-                    ),
-                    shape = MaterialTheme.shapes.small
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                   Text("+ Add", color = MaterialTheme.colorScheme.secondary, style = MaterialTheme.typography.bodyLarge)
+                    OutlinedButton(
+                        onClick = { showSyncDialog = true },
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.primary
+                        ),
+                        border = BorderStroke(
+                            width = 1.dp,
+                            color = MaterialTheme.colorScheme.primary
+                        ),
+                        shape = MaterialTheme.shapes.small
+                    ) {
+                        Text("Sync", color = MaterialTheme.colorScheme.primary)
+                    }
+                    
+                    OutlinedButton(
+                        onClick = { navController.navigate(Routes.CreateInstructor.route) },
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.primary
+                        ),
+                        border = BorderStroke(
+                            width = 1.dp,
+                            color = MaterialTheme.colorScheme.secondary
+                        ),
+                        shape = MaterialTheme.shapes.small
+                    ) {
+                        Text("+ Add", color = MaterialTheme.colorScheme.secondary)
+                    }
                 }
             }
 

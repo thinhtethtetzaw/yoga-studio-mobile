@@ -819,4 +819,14 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
             return@withContext courses.size
         }
     }
+
+    fun insertInstructorWithId(id: Int, name: String, experience: String): Long {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put("id", id)
+            put("name", name)
+            put("experience", experience)
+        }
+        return db.insert("instructors", null, values)
+    }
 }

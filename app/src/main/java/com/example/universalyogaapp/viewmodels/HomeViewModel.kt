@@ -20,7 +20,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val courseViewModel = CourseViewModel(application)
     private val database = FirebaseDatabase.getInstance()
     private val bookingsRef = database.getReference("bookings")
-    private val instructorsRef = database.getReference("instructors")
     private val _statistics = MutableStateFlow(Statistics(0, 0, 0, 0))
     val statistics: StateFlow<Statistics> = _statistics
 
@@ -31,7 +30,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private fun loadStatistics() {
         viewModelScope.launch {
             try {
-                // Get booking and instructor counts from Firebase
+                // Get booking count from Firebase
                 bookingsRef.addListenerForSingleValueEvent(object : ValueEventListener {
                     override fun onDataChange(snapshot: DataSnapshot) {
                         var totalBookings = 0
@@ -43,24 +42,13 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                         }
                         Log.d("HomeViewModel", "Loaded bookings: $totalBookings")
                         
-                        // After getting bookings, get instructors
-                        instructorsRef.addListenerForSingleValueEvent(object : ValueEventListener {
-                            override fun onDataChange(instructorsSnapshot: DataSnapshot) {
-                                val instructorsCount = instructorsSnapshot.childrenCount.toInt()
-                                Log.d("HomeViewModel", "Loaded instructors: $instructorsCount")
-                                
-                                viewModelScope.launch {
-                                    updateStatistics(totalBookings, instructorsCount)
-                                }
-                            }
-
-                            override fun onCancelled(error: DatabaseError) {
-                                Log.e("HomeViewModel", "Error loading instructors", error.toException())
-                                viewModelScope.launch {
-                                    updateStatistics(totalBookings, 0)
-                                }
-                            }
-                        })
+                        // Get instructor count from local database
+                        val instructorsCount = dbHelper.getAllInstructors().size
+                        Log.d("HomeViewModel", "Loaded instructors: $instructorsCount")
+                        
+                        viewModelScope.launch {
+                            updateStatistics(totalBookings, instructorsCount)
+                        }
                     }
 
                     override fun onCancelled(error: DatabaseError) {
