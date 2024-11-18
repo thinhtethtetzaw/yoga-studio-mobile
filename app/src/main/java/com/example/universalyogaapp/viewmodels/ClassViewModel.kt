@@ -58,10 +58,30 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
     ) {
         viewModelScope.launch {
             try {
-                // Save only to local database
-                val id = dbHelper.addClass(name, instructorName, courseName, date, comment)
+                Log.d("ClassViewModel", """
+                    Adding class to database:
+                    name: $name
+                    instructorName: $instructorName
+                    courseId: $courseId
+                    courseName: $courseName
+                    date: $date
+                    comment: $comment
+                """.trimIndent())
+
+                // Save to local database
+                val id = dbHelper.addClass(
+                    name = name,
+                    instructorName = instructorName,
+                    courseId = courseId,
+                    courseName = courseName,
+                    date = date,
+                    comment = comment
+                )
+                Log.d("ClassViewModel", "Received ID from database: $id")
+
                 if (id != -1L) {
-                    // Mark this class as needing sync
+                    Log.d("ClassViewModel", "Successfully added class to database")
+                    // Create new class instance
                     val newClass = YogaClass(
                         id = id.toInt(),
                         name = name,
@@ -72,16 +92,19 @@ class ClassViewModel(application: Application) : AndroidViewModel(application) {
                         comment = comment
                     )
                     
-                    // Add to local-only classes for later sync
+                    // Add to local-only classes
                     val localClasses = _localOnlyClasses.value.toMutableList()
                     localClasses.add(newClass)
                     _localOnlyClasses.emit(localClasses)
                     
-                    // Reload from local DB to update UI
+                    // Reload classes
                     loadClasses()
+                } else {
+                    Log.e("ClassViewModel", "Failed to add class - database returned -1")
                 }
             } catch (e: Exception) {
                 Log.e("ClassViewModel", "Error adding class", e)
+                throw e  // Rethrow to propagate to UI
             }
         }
     }

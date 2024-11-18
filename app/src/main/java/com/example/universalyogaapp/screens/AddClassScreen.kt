@@ -1,5 +1,6 @@
 package com.example.universalyogaapp.screens
 
+import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -182,7 +183,8 @@ fun AddClassScreen(navController: NavController) {
                             },
                             onClick = {
                                 courseName = courseWithCount.course.courseName
-                                selectedCourseId = courseWithCount.course.id.toLong()
+                                selectedCourseId = courseWithCount.course.id
+                                Log.d("AddClassScreen", "Selected course: ${courseWithCount.course.courseName} with ID: ${courseWithCount.course.id}")
                                 courseExpanded = false
                             }
                         )
@@ -243,16 +245,28 @@ fun AddClassScreen(navController: NavController) {
                         else -> {
                             showError = false
                             try {
+                                val courseIdLong = selectedCourseId.toLong()
+                                Log.d("AddClassScreen", """
+                                    Attempting to add class with:
+                                    name: $className
+                                    instructorName: $instructorName
+                                    courseId: $courseIdLong
+                                    courseName: $courseName
+                                    date: $selectedDate
+                                    comment: $comment
+                                """.trimIndent())
+                                
                                 classViewModel.addClass(
                                     name = className.trim(),
                                     instructorName = instructorName.trim(),
-                                    courseId = selectedCourseId,
+                                    courseId = courseIdLong,
                                     courseName = courseName.trim(),
                                     date = selectedDate.trim(),
                                     comment = comment.trim()
                                 )
                                 navController.navigateUp()
                             } catch (e: Exception) {
+                                Log.e("AddClassScreen", "Error in onClick: ", e)
                                 showError = true
                                 errorMessage = "Error adding class: ${e.message}"
                                 e.printStackTrace()
