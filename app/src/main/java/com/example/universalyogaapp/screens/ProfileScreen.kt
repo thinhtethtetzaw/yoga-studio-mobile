@@ -21,7 +21,6 @@ import com.example.universalyogaapp.SessionManager
 import com.example.universalyogaapp.components.CommonScaffold
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.clickable
 import androidx.compose.material3.MaterialTheme
 
 

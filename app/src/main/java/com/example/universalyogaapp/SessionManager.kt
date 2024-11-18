@@ -1,7 +1,6 @@
 package com.example.universalyogaapp
 
 import android.content.Context
-import android.content.SharedPreferences
 
 class SessionManager(context: Context) {
     private var prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)

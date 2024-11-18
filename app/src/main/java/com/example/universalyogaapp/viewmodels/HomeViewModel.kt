@@ -9,7 +9,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import com.example.universalyogaapp.DatabaseHelper
 import android.util.Log
-import com.example.universalyogaapp.viewmodels.CourseViewModel
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError

@@ -20,7 +20,6 @@ import java.time.format.TextStyle
 import java.util.Locale
 import com.example.universalyogaapp.viewmodels.ClassViewModel
 import com.example.universalyogaapp.components.DatePickerField
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

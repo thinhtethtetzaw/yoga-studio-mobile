@@ -31,15 +31,11 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import android.app.DatePickerDialog
 import androidx.compose.ui.platform.LocalContext
 import com.example.universalyogaapp.components.DatePickerField
 import com.example.universalyogaapp.viewmodels.CourseViewModel
 import androidx.compose.ui.res.painterResource
 import com.example.universalyogaapp.R
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
@@ -54,28 +50,16 @@ fun ClassesScreen(navController: NavController) {
     val classViewModel: ClassViewModel = viewModel()
     val courseViewModel: CourseViewModel = viewModel()
     val classes by classViewModel.classes.collectAsState()
-    val instructors by classViewModel.instructors.collectAsState()
     val courses by courseViewModel.coursesWithCount.collectAsState()
     val scope = rememberCoroutineScope()
-    
     var isSyncing by remember { mutableStateOf(false) }
     var showSyncError by remember { mutableStateOf(false) }
-
     var showFilters by remember { mutableStateOf(false) }
-    var selectedInstructor by remember { mutableStateOf("") }
-    var selectedClassName by remember { mutableStateOf("") }
     var selectedCourse by remember { mutableStateOf("") }
     var selectedDate by remember { mutableStateOf("") }
-
-    var instructorExpanded by remember { mutableStateOf(false) }
     var courseExpanded by remember { mutableStateOf(false) }
-
     var searchQuery by remember { mutableStateOf("") }
 
-    // Get unique class names
-    val uniqueClassNames = remember(classes) {
-        classes.map { it.name }.distinct()
-    }
 
     LaunchedEffect(Unit) {
         classViewModel.loadClasses()

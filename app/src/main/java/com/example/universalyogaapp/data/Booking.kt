@@ -13,7 +13,4 @@ data class Booking(
     val userEmail: String = "",
     val userId: String = "",
     val userName: String = ""
-) {
-    // Required empty constructor for Firebase
-    constructor() : this(0, "", "", 0, "", "", "", 0, "", "", "", "")
-} 
+)

@@ -8,14 +8,11 @@ import com.example.universalyogaapp.data.YogaClass
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import android.util.Log
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
-import kotlinx.coroutines.tasks.await
 import com.google.android.gms.tasks.Tasks
 
 class ClassViewModel(application: Application) : AndroidViewModel(application) {

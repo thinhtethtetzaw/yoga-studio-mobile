@@ -25,7 +25,6 @@ import com.example.universalyogaapp.viewmodels.CourseViewModel
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import com.example.universalyogaapp.components.CommonScaffold
-import com.example.universalyogaapp.viewmodels.ClassViewModel
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
@@ -55,7 +54,6 @@ fun CoursesScreen(
     }
 
     val coursesWithCount by courseViewModel.coursesWithCount.collectAsState()
-    val hasLocalChanges by courseViewModel.localChanges.collectAsState()
 
 
     CommonScaffold(

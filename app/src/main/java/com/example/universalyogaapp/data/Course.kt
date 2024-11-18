@@ -39,9 +39,3 @@ data class Course(
         )
     }
 }
-
-enum class YogaType {
-    FLOW_YOGA,
-    AERIAL_YOGA,
-    FAMILY_YOGA
-} 

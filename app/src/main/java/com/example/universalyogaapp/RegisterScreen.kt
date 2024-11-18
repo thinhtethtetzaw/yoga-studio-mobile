@@ -5,7 +5,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -19,8 +18,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import androidx.compose.material3.MaterialTheme
-import com.google.firebase.database.ktx.database
-import com.google.firebase.ktx.Firebase
 import com.example.universalyogaapp.models.Admin
 import com.example.universalyogaapp.utils.FirebaseUtils
 import kotlinx.coroutines.CoroutineScope
