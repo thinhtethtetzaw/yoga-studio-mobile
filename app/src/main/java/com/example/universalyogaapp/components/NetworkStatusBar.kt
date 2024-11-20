@@ -44,7 +44,7 @@ fun NetworkStatusBar(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = if (isOnline) "Back online, syncing to cloud..." else "No Internet Connection!",
+                    text = if (isOnline) "Syncing to cloud..." else "No Internet Connection!",
                     color = Color.White
                 )
             }

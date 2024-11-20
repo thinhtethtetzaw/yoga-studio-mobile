@@ -18,6 +18,62 @@ import com.example.universalyogaapp.data.Course
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.universalyogaapp.viewmodels.CourseViewModel
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.window.DialogProperties
+
+// Move this function outside of CreateCourseFormContent
+private fun formatCourseDetails(
+    courseName: String,
+    selectedDays: Set<String>,
+    fromTime: String,
+    toTime: String,
+    capacity: String,
+    level: String,
+    type: String,
+    pricePerClass: String,
+    description: String
+): String {
+    return buildString {
+        append("Course Name: $courseName\n")
+        append("Days: ${selectedDays.joinToString(", ")}\n")
+        append("Time: $fromTime - $toTime\n")
+        append("Capacity: $capacity\n")
+        append("Level: $level\n")
+        append("Type: $type\n")
+        append("Price: £$pricePerClass per class\n")
+        if (description.isNotBlank()) {
+            append("Description: $description")
+        }
+    }
+}
+
+// Move DetailRow outside of CreateCourseFormContent
+@Composable
+private fun DetailRow(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1.5f)
+        )
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -143,6 +199,9 @@ fun CreateCourseFormContent(
 
         return isValid
     }
+
+    // Add this near the top with other state variables
+    var showConfirmationDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -491,29 +550,12 @@ fun CreateCourseFormContent(
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(6.dp)
                 ) {
-                    Text("Cancel")
+                    Text("Cancel", color = Color.Gray)
                 }
                 Button(
                     onClick = {
                         if (validateInputs()) {
-                            val course = Course(
-                                id = if (isEditing) existingCourseId else 0L,
-                                courseName = courseName,
-                                daysOfWeek = selectedDays.joinToString(","),
-                                timeOfCourse = "$fromTime - $toTime",
-                                capacity = capacity.toIntOrNull() ?: 0,
-                                duration = calculateDuration(fromTime, toTime),
-                                pricePerClass = pricePerClass.toDoubleOrNull() ?: 0.0,
-                                typeOfClass = type,
-                                description = description,
-                                difficultyLevel = level
-                            )
-                            if (isEditing) {
-                                courseViewModel.updateCourse(course)
-                            } else {
-                                courseViewModel.insertCourse(course)
-                            }
-                            navController.navigateUp()
+                            showConfirmationDialog = true
                         }
                     },
                     modifier = Modifier.weight(1f),
@@ -523,6 +565,98 @@ fun CreateCourseFormContent(
                 }
             }
             Spacer(modifier = Modifier.height(16.dp))
+
+            // Update the confirmation dialog implementation
+            if (showConfirmationDialog) {
+                AlertDialog(
+                    onDismissRequest = { showConfirmationDialog = false },
+                    properties = DialogProperties(usePlatformDefaultWidth = false),
+                    modifier = Modifier
+                        .fillMaxWidth(0.95f)
+                        .padding(16.dp),
+                    containerColor = Color.White,
+                    shape = RoundedCornerShape(8.dp),
+                    title = {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = if (isEditing) "Are you sure you want to update this course?" else "Are you sure you want to create this course?",
+                                style = MaterialTheme.typography.headlineSmall
+                            )
+                        }
+                    },
+                    text = {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .verticalScroll(rememberScrollState())
+                                .padding(vertical = 8.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                            ) {
+                                DetailRow("Course Name:", courseName)
+                                DetailRow("Days:", selectedDays.joinToString(", "))
+                                DetailRow("Time:", "$fromTime - $toTime")
+                                DetailRow("Capacity:", capacity)
+                                DetailRow("Level:", level)
+                                DetailRow("Type:", type)
+                                DetailRow("Price:", "£$pricePerClass per class")
+                                if (description.isNotBlank()) {
+                                    DetailRow("Description:", description )
+                                }
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            OutlinedButton(
+                                onClick = { showConfirmationDialog = false },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text("Cancel", color = Color.Gray)
+                            }
+                            Button(
+                                onClick = {
+                                    val course = Course(
+                                        id = if (isEditing) existingCourseId else 0L,
+                                        courseName = courseName,
+                                        daysOfWeek = selectedDays.joinToString(","),
+                                        timeOfCourse = "$fromTime - $toTime",
+                                        capacity = capacity.toIntOrNull() ?: 0,
+                                        duration = calculateDuration(fromTime, toTime),
+                                        pricePerClass = pricePerClass.toDoubleOrNull() ?: 0.0,
+                                        typeOfClass = type,
+                                        description = description,
+                                        difficultyLevel = level
+                                    )
+                                    if (isEditing) {
+                                        courseViewModel.updateCourse(course)
+                                    } else {
+                                        courseViewModel.insertCourse(course)
+                                    }
+                                    showConfirmationDialog = false
+                                    navController.navigateUp()
+                                },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text("Confirm")
+                            }
+                        }
+                    },
+                    dismissButton = null
+                )
+            }
         }
     }
 }

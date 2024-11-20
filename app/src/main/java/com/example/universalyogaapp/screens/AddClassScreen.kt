@@ -20,6 +20,11 @@ import java.time.format.TextStyle
 import java.util.Locale
 import com.example.universalyogaapp.viewmodels.ClassViewModel
 import com.example.universalyogaapp.components.DatePickerField
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.Alignment
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,6 +48,8 @@ fun AddClassScreen(navController: NavController) {
     var errorMessage by remember { mutableStateOf("") }
 
     var selectedCourseId by remember { mutableStateOf(0L) }
+
+    var showConfirmationDialog by remember { mutableStateOf(false) }
 
     // Collect instructors from ViewModel
     val instructors by instructorViewModel.instructors.collectAsState()
@@ -243,33 +250,7 @@ fun AddClassScreen(navController: NavController) {
                         }
                         else -> {
                             showError = false
-                            try {
-                                val courseIdLong = selectedCourseId.toLong()
-                                Log.d("AddClassScreen", """
-                                    Attempting to add class with:
-                                    name: $className
-                                    instructorName: $instructorName
-                                    courseId: $courseIdLong
-                                    courseName: $courseName
-                                    date: $selectedDate
-                                    comment: $comment
-                                """.trimIndent())
-                                
-                                classViewModel.addClass(
-                                    name = className.trim(),
-                                    instructorName = instructorName.trim(),
-                                    courseId = courseIdLong,
-                                    courseName = courseName.trim(),
-                                    date = selectedDate.trim(),
-                                    comment = comment.trim()
-                                )
-                                navController.navigateUp()
-                            } catch (e: Exception) {
-                                Log.e("AddClassScreen", "Error in onClick: ", e)
-                                showError = true
-                                errorMessage = "Error adding class: ${e.message}"
-                                e.printStackTrace()
-                            }
+                            showConfirmationDialog = true
                         }
                     }
                 },
@@ -281,5 +262,128 @@ fun AddClassScreen(navController: NavController) {
                 Text("Add Class")
             }
         }
+    }
+
+    if (showConfirmationDialog) {
+        AlertDialog(
+            onDismissRequest = { showConfirmationDialog = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false),
+            modifier = Modifier
+                .fillMaxWidth(0.95f)
+                .padding(16.dp),
+            containerColor = Color.White,
+            shape = RoundedCornerShape(8.dp),
+            title = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Are you sure you want to create this class?",
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+                }
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                        .padding(vertical = 8.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        DetailRow("Class Name:", className)
+                        DetailRow("Instructor:", instructorName)
+                        DetailRow("Course:", courseName)
+                        DetailRow("Date:", formatDate(selectedDate))
+                        if (comment.isNotBlank()) {
+                            DetailRow("Comment:", comment)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = { showConfirmationDialog = false },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("Cancel", color = Color.Gray)
+                    }
+                    Button(
+                        onClick = {
+                            try {
+                                val courseIdLong = selectedCourseId.toLong()
+                                classViewModel.addClass(
+                                    name = className.trim(),
+                                    instructorName = instructorName.trim(),
+                                    courseId = courseIdLong,
+                                    courseName = courseName.trim(),
+                                    date = selectedDate.trim(),
+                                    comment = comment.trim()
+                                )
+                                showConfirmationDialog = false
+                                navController.navigateUp()
+                            } catch (e: Exception) {
+                                Log.e("AddClassScreen", "Error in onClick: ", e)
+                                showError = true
+                                errorMessage = "Error adding class: ${e.message}"
+                                e.printStackTrace()
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("Confirm")
+                    }
+                }
+            },
+            dismissButton = null
+        )
+    }
+}
+
+@Composable
+private fun DetailRow(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1.5f)
+        )
+    }
+}
+
+// Add this function at the top level to format the date
+private fun formatDate(dateString: String): String {
+    return try {
+        val date = java.time.LocalDate.parse(dateString)
+        val formatter = DateTimeFormatter.ofPattern("EEEE, MMM d, yyyy", Locale.ENGLISH)
+        date.format(formatter)
+    } catch (e: Exception) {
+        dateString // Return original string if parsing fails
     }
 } 

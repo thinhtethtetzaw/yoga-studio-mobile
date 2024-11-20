@@ -22,7 +22,6 @@ import com.airbnb.lottie.compose.*
 import com.example.universalyogaapp.screens.CoursesScreen
 import com.example.universalyogaapp.screens.ClassesScreen
 import com.example.universalyogaapp.screens.InstructorsScreen
-import com.example.universalyogaapp.screens.ParticipantsScreen
 import com.example.universalyogaapp.screens.ProfileScreen
 import androidx.compose.material3.MaterialTheme
 import com.example.universalyogaapp.screens.CreateCourseScreen
@@ -77,9 +76,7 @@ class MainActivity : ComponentActivity() {
                         composable(Routes.CreateInstructor.route) {
                             CreateInstructorScreen(navController = navController)
                         }
-                        composable(Routes.Participants.route) {
-                            ParticipantsScreen(navController = navController)
-                        }
+
                         composable(Routes.Profile.route) {
                             ProfileScreen(navController = navController)
                         }
